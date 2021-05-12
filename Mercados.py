@@ -204,3 +204,37 @@ class Mercado:
             
         return historia
     
+    def history_pClean(self,bono):
+        
+        #Captar las operaciones historicas del bono
+        historia_operaciones=self.operaciones[self.operaciones['isin']==bono].sort_values(by=['fecha_operacion','numero_operacion'])
+        #Ordenar por fecha y operacione
+        historia_operaciones=historia_operaciones.sort_values(by=['fecha_operacion','numero_operacion'])
+        
+        #Ultima fecha de operaciones cargadas
+        fecha_maxima=self.operaciones['fecha_operacion'].max()
+
+        #Determinar fecha inicio de datos
+        fecha_inicio_operaciones=historia_operaciones['fecha_operacion'].min()
+
+        #Cargar los dias segun rango de fechas de f_inicio hasta f_final
+        historia = pd.DataFrame({'date':pd.date_range(start=fecha_inicio_operaciones, 
+                                                         end=fecha_maxima
+                                                        ,freq='d')})
+        #Cargar precio historico
+        ultima_operacion=historia_operaciones[historia_operaciones['fecha_operacion']==fecha_inicio_operaciones].iloc[-1]
+        datos=self.getBond(bono).datosValor(ultima_operacion['ytm'],fecha_inicio_operaciones)
+        
+        for row in historia.itertuples():
+            if(row.date in historia_operaciones[historia_operaciones['fecha_operacion']>=ultima_operacion['fecha_operacion']]['fecha_operacion'].values):
+                ultima_operacion=historia_operaciones[historia_operaciones['fecha_operacion']==row.date].iloc[-1]
+                datos=self.getBond(bono).datosValor(ultima_operacion['ytm'],row.date)
+                print(row.date,'...Operacion...',datos)
+                
+            elif(row.date in self.getBond(bono).flujo['fecha'].values):
+                datos=self.getBond(bono).datosValor(ultima_operacion['ytm'],row.date)
+                print(row.date,'...Cupon')
+            historia.loc[row.Index,'precio_clean']=datos['PrecioUltimoCupon']
+              
+            
+        return historia
