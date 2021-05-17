@@ -20,9 +20,10 @@ if __name__ == "__main__":
             
     mercado=Mercado(flujos,operaciones=operaciones)
       
-    bono_history=mercado.history(input('Ingreses el codigo del Bono:'))
+    bono_history=mercado.history_pClean('PYCON02F7008')
     
-    bono_history.plot(x='date',y='ytm')
+    
+    bono_history.plot(x='date',y='precio_clean')
     
     
     
