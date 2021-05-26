@@ -40,15 +40,17 @@ class Bono:
         
         #flujo de pago
         self.flujo=flujo.loc[:,['fecha','interes','amortizacion']]
+        #Ordenar por fecha
+        self.flujo=self.flujo.sort_values(by='fecha')
         
         #Informacion del Bono
         df=pd.DataFrame(data={'isin':self.isin,
                                 'simbolo':self.isin[2:5],
                                 'Emisor':flujo['emisor'].values[0],
-                                'TipoInstrumento':flujo['tipo_instrumento'].values[0],
+                                'Tipo_Instrumento':flujo['tipo_instrumento'].values[0],
                                 'Moneda':flujo['moneda'].values[0],
-                                'FechaEmision':flujo['fecha_colocacion'].values[0],
-                                'FechaVenc':self.flujo['fecha'].max(),
+                                'Fecha_Emision':flujo['fecha_colocacion'].values[0],
+                                'Fecha_Vencimiento':self.flujo['fecha'].max(),
                                 'ValorNominal':self.flujo['amortizacion'].sum(),
                                 'TasaCupon':flujo['tasa_interes'].values[0]
                                 },
@@ -77,40 +79,44 @@ class Bono:
         
     def datosValor(self,irr,fechaValor):
         #Valoracion segun rendimiento
-        valor=self.valorActual(irr,fechaValor)
+        valorActualNeto=self.valorActual(irr,fechaValor)
         #flujo de pago futuro desde fechaValor
         flujo=self.flujoVigente(fechaValor)
         #Valor nominal unitario
-        vn=self.info['ValorNominal']
+        valorNominal=self.info['ValorNominal']
         #Tasa cupon
-        tc=self.info['TasaCupon']
+        tasaCupon=self.info['TasaCupon']
         
         #Periodo de vencimiento o maduracion del instrumento
-        mad=int((self.info['FechaVenc']-fechaValor)/timedelta(days=1))
+        maduracion=int((self.info['Fecha_Vencimiento']-fechaValor)/timedelta(days=1))
         
         #Dias desde el ultimo pago cupon
-        diasCorr=round(flujo.iloc[0]['pago']*365/(tc*vn),0)-flujo.iloc[0]['dias']
-        #Interes corrido
-        intcorr=tc/365*diasCorr*vn
+        dias_desde_ultimoCupon=round(flujo.iloc[0].at['interes']*365/(tasaCupon*valorNominal),0)
+        
+        dias_corridos=dias_desde_ultimoCupon-flujo.iloc[0].at['dias']
+        
+        interes_corrido=tasaCupon/365*dias_corridos*valorNominal
+        
+        interes_devengado_ultimoCupon=((1+irr)**(dias_corridos/365)-1)*valorActualNeto
         #Tasa nominal
-        tna=(flujo['pago'].sum()/valor-1)*(365/mad)
+        tasa_nominal=(flujo['pago'].sum()/valorActualNeto-1)*(365/maduracion)
         #Duration de la operacion
-        dur=sum(flujo['pago']/(1+irr)**(flujo['dias']/365)*flujo['dias'])/valor
+        duration=sum(flujo['pago']/(1+irr)**(flujo['dias']/365)*flujo['dias'])/valorActualNeto
         
         #Precios
-        pdirty=valor/vn*100
-        pclean=(valor-intcorr)/vn*100
-        pCupon=(valor/(1+irr)**(diasCorr/365))/vn*100
+        pdirty=valorActualNeto/valorNominal*100
+        pclean=(valorActualNeto-interes_corrido)/valorNominal*100
+        pCupon=(valorActualNeto-interes_devengado_ultimoCupon)/valorNominal*100
         
             
         datos={'Rendimiento':irr,
-               'TasaNominal':tna,
+               'TasaNominal':tasa_nominal,
                'PrecioDirty':pdirty,
                'PrecioClean':pclean,
                'PrecioUltimoCupon':pCupon,
-               'InteresCorrido':intcorr/vn*100,
-                'Duration':dur/365,
-               'Maduracion':mad/365}
+               'InteresCorrido':interes_corrido/valorNominal*100,
+                'Duration':duration/365,
+               'Maduracion':maduracion/365}
         
         
         return pd.DataFrame(data=datos,index=[0]).loc[0]
@@ -150,8 +156,8 @@ class Mercado:
         if(isin in self.instrumentos.index):
             return self.instrumentos.loc[isin,'bono']
         else:
-            print('No se encuentra disponible el bono: s%' % isin)
-            pass
+            print('No se encuentra disponible el bono: ', isin)
+            return None
         
     def listOfBond(self):
         lbono=pd.DataFrame()
@@ -229,12 +235,10 @@ class Mercado:
             if(row.date in historia_operaciones[historia_operaciones['fecha_operacion']>=ultima_operacion['fecha_operacion']]['fecha_operacion'].values):
                 ultima_operacion=historia_operaciones[historia_operaciones['fecha_operacion']==row.date].iloc[-1]
                 datos=self.getBond(bono).datosValor(ultima_operacion['ytm'],row.date)
-                print(row.date,'...Operacion...',datos)
-                
+                                
             elif(row.date in self.getBond(bono).flujo['fecha'].values):
                 datos=self.getBond(bono).datosValor(ultima_operacion['ytm'],row.date)
-                print(row.date,'...Cupon')
-            historia.loc[row.Index,'precio_clean']=datos['PrecioUltimoCupon']
-              
+
+            historia.loc[row.Index,'precio_clean']=datos['PrecioUltimoCupon']              
             
         return historia
