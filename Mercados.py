@@ -210,35 +210,45 @@ class Mercado:
             
         return historia
     
-    def history_pClean(self,bono):
-        
-        #Captar las operaciones historicas del bono
-        historia_operaciones=self.operaciones[self.operaciones['isin']==bono].sort_values(by=['fecha_operacion','numero_operacion'])
-        #Ordenar por fecha y operacione
-        historia_operaciones=historia_operaciones.sort_values(by=['fecha_operacion','numero_operacion'])
-        
-        #Ultima fecha de operaciones cargadas
-        fecha_maxima=self.operaciones['fecha_operacion'].max()
-
-        #Determinar fecha inicio de datos
-        fecha_inicio_operaciones=historia_operaciones['fecha_operacion'].min()
-
-        #Cargar los dias segun rango de fechas de f_inicio hasta f_final
-        historia = pd.DataFrame({'date':pd.date_range(start=fecha_inicio_operaciones, 
-                                                         end=fecha_maxima
-                                                        ,freq='d')})
-        #Cargar precio historico
-        ultima_operacion=historia_operaciones[historia_operaciones['fecha_operacion']==fecha_inicio_operaciones].iloc[-1]
-        datos=self.getBond(bono).datosValor(ultima_operacion['ytm'],fecha_inicio_operaciones)
-        
-        for row in historia.itertuples():
-            if(row.date in historia_operaciones[historia_operaciones['fecha_operacion']>=ultima_operacion['fecha_operacion']]['fecha_operacion'].values):
-                ultima_operacion=historia_operaciones[historia_operaciones['fecha_operacion']==row.date].iloc[-1]
-                datos=self.getBond(bono).datosValor(ultima_operacion['ytm'],row.date)
-                                
-            elif(row.date in self.getBond(bono).flujo['fecha'].values):
-                datos=self.getBond(bono).datosValor(ultima_operacion['ytm'],row.date)
-
-            historia.loc[row.Index,'precio_clean']=datos['PrecioUltimoCupon']              
+    def history_pClean(self,bono_isin):
+            #definir el bono
+            bono=self.getBond(bono_isin)
+            #Captar las operaciones historicas del bono
+            historia_operaciones=self.operaciones[self.operaciones['isin']==bono_isin].sort_values(by=['fecha_operacion','numero_operacion'])
+            #crear listado de fechas
+            fechas_operaciones=pd.to_datetime(historia_operaciones['fecha_operacion'].values)
             
-        return historia
+            fechas_flujos=pd.to_datetime(bono.flujo['fecha'].values)
+
+            #Determinar fecha inicio de datos
+            fecha_inicio_operaciones=fechas_operaciones.min()
+            #Ultima fecha de operaciones cargadas
+            fecha_maxima=self.operaciones['fecha_operacion'].max()
+            #Cargar los dias segun rango de fechas de f_inicio hasta f_final
+            historia = pd.DataFrame({'date':pd.date_range(start=fecha_inicio_operaciones, 
+                                                             end=fecha_maxima
+                                                            ,freq='d')})
+
+            #primera operacion
+            ultima_operacion=historia_operaciones[historia_operaciones['fecha_operacion']==fecha_inicio_operaciones].iloc[-1]
+
+            #Datos de valoracion de la primera operacion
+            datos=bono.datosValor(ultima_operacion['ytm'],fecha_inicio_operaciones)
+            #Carga del primer dato
+            historia.loc[0,'precio_clean']=datos['PrecioUltimoCupon']
+            
+            for row in historia.loc[1:].itertuples():
+
+                if(row.date in fechas_operaciones):
+                    ultima_operacion=historia_operaciones[historia_operaciones['fecha_operacion']==row.date].iloc[-1]
+                    datos=bono.datosValor(ultima_operacion['ytm'],row.date)
+
+                    fechas_operaciones=fechas_operaciones[~(fechas_operaciones==row.date)]
+
+                elif(row.date in fechas_flujos):
+                    datos=bono.datosValor(ultima_operacion['ytm'],row.date)
+
+                historia.loc[row.Index,'precio_clean']=datos['PrecioUltimoCupon']
+                
+
+            return historia
