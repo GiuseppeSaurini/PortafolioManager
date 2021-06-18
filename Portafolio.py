@@ -30,7 +30,7 @@ def logfunc(list_x,list_y):
 
 
 class Portafolio:
-    def __init__(self,denominacion,stock=[]):
+    def __init__(self,denominacion='',stock=[]):
         #bono identificacion
         self.name=denominacion
         self.operaciones=pd.DataFrame(columns=['operacion','isin',
