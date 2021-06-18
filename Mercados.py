@@ -81,7 +81,7 @@ class Bono:
         #Valoracion segun rendimiento
         valorActualNeto=self.valorActual(irr,fechaValor)
         #flujo de pago futuro desde fechaValor
-        flujo=self.flujoVigente(fechaValor)
+        flujo=self.flujoVigente(fechaValor).sort_values(by='fecha')
         #Valor nominal unitario
         valorNominal=self.info['ValorNominal']
         #Tasa cupon
