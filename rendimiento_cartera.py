@@ -23,7 +23,7 @@ if __name__ == "__main__":
           
     mercado=Mercado(flujos=flujos)
     
-    cliente=Portafolio('Juan')
+    cliente=Portafolio()
     cliente.operacion('compra',mercado,'PYCON01F6605',datetime(2017,2,22),1062849,2)
     cliente.operacion('compra',mercado,'PYATM03F6452',datetime(2017,2,22),1075315,4)
     cliente.operacion('compra',mercado,'PYINN03F5295',datetime(2017,2,22),1036266,4)
