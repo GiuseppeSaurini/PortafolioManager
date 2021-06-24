@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 from datetime import timedelta
 from scipy.optimize import fsolve
+import icecream as ic
 
 
 
@@ -58,11 +59,14 @@ class Bono:
         self.info=df.loc[0]
         
     def flujoVigente(self,fecha):
-        
+        #determinar el flujo a cobrar
         df=self.flujo[(self.flujo['fecha']>fecha)]
         
-        df['pago']=df['interes']+df['amortizacion']
-        df['dias']=((self.flujo['fecha']-fecha)/timedelta(days=1)).astype(int)
+        #calcular pago total de los flujos 
+        df.loc[:,'pago']=df.loc[:,'interes']+df.loc[:,'amortizacion']
+        #calcular dias a cobrar de cada flujo
+        df.loc[:,'dias']=((df.loc[:,'fecha']-fecha)/timedelta(days=1)).astype(int)
+        
         return df
         
     def rendimiento(self,fechaValor,valorActual):
@@ -165,17 +169,17 @@ class Mercado:
             lbono=lbono.append(self.getBond(bono).info)
         return lbono
     
-    def curva(self,finicio,ffin,moneda):
+    def curva(self,fecha_curva,fecha_rango,moneda):
         if(type(self.calificaciones)==type(pd.DataFrame())):
             #filtrar las operaciones en base a parametros
-            op=self.operaciones[(self.operaciones['fecha_operacion']>=finicio)&
-                                (self.operaciones['fecha_operacion']<=ffin)&
+            operaciones=self.operaciones[(self.operaciones['fecha_operacion']>=fecha_rango)&
+                                (self.operaciones['fecha_operacion']<=fecha_curva)&
                                 (self.operaciones['moneda']==moneda)]
             
-            for row in op.itertuples():
-                op.loc[row.Index,'duration']=self.getBond(row.isin).datosValor(row.ytm,ffin)['Duration']
+            for row in operaciones.itertuples():
+                operaciones.loc[row.Index,'duration']=self.getBond(row.isin).datosValor(row.ytm,fecha_curva)['Duration']
             
-            curva=op.pivot_table(index=['calificacion','emisor','isin'],values=['ytm','duration'],aggfunc=np.mean)
+            curva=operaciones.pivot_table(index=['calificacion','emisor','isin'],values=['ytm','duration'],aggfunc=np.mean)
             return curva
         else:
             print('No se puede ejecutar esta funcion al no tener cargadas las calificaciones de los instrumentos')
@@ -200,6 +204,7 @@ class Mercado:
         #Cargar rendimiento historico
         for row in historia.itertuples():
             y=historia_operaciones[historia_operaciones['numero_operacion']==historia_operaciones[historia_operaciones['fecha_operacion']<=row.date]['numero_operacion'].max()].iloc[0].at['ytm']
+            print (row.date)
             datos=self.getBond(bono).datosValor(y,row.date)
     
             historia.loc[row.Index,'ytm']=datos['Rendimiento']
@@ -248,7 +253,7 @@ class Mercado:
                 elif(row.date in fechas_flujos):
                     datos=bono.datosValor(ultima_operacion['ytm'],row.date)
 
-                historia.loc[row.Index,'precio_clean']=datos['PrecioUltimoCupon']
+                historia.loc[row.Index,'precio_clean']=datos.at['PrecioUltimoCupon']
                 
 
             return historia
