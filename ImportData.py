@@ -9,14 +9,14 @@ Created on Fri Apr 30 16:03:23 2021
 
 # Cargar las librería de python data analysis
 import pandas as pd 
-import numpy as np
-from datetime import datetime, timedelta
-import os
+#import numpy as np
+#from datetime import datetime, timedelta
+#import os
 import requests
 import json
 
 
-def importData(isin=None,table='instrumentos',fechaVnc_base=None):
+def importData(isin=None,table='instrumentos',fecha_base=''):
     #API Datawharehousing url y contraseña
     url_DWH='https://data.marketdata.com.py/api/v1/'
     key='?api_key=Tp1u3Wb0y2X31w4ZMjcRxAldlpHjC8hy'
@@ -26,7 +26,7 @@ def importData(isin=None,table='instrumentos',fechaVnc_base=None):
     
     #Carga de filtros
     query=query+('&isin='+isin if isin!=None else '') 
-    query=query+('&fecha_vencimiento_mt='+fechaVnc_base if fechaVnc_base!=None else '')
+    query=query+('&fecha_vencimiento_mt='+fecha_base)
    
     #importar los datos
     data=json.loads(requests.get(query).text)
@@ -41,6 +41,10 @@ def importData(isin=None,table='instrumentos',fechaVnc_base=None):
     df['fecha_vencimiento']=pd.to_datetime(df['fecha_vencimiento'])
     df['valor_nominal']=pd.to_numeric(df['valor_nominal'])
     
+    if(table=='operaciones'):
+        df['fecha_operacion']=pd.to_datetime(df['fecha_operacion'])
+    elif (table=='flujos'):
+        df['fecha']=pd.to_datetime(df['fecha'])
     
     for row in df.itertuples():
         df.loc[row.Index,'simbolo_emisor']=row.isin[2:5]
@@ -52,37 +56,4 @@ def importData(isin=None,table='instrumentos',fechaVnc_base=None):
         df=df.set_index('id')
         
     return df
-
-if __name__ == "__main__":
-    #Importacion de instrumentos
-    bonos=importData()
-    bonos.to_excel('G:/Mi unidad/MARKET DATA/BaseDatos/emisiones.xlsx')
-    
-    #(0) Inicio de carga de datos 
-    flujos=importData(table='flujos')
-    
-    #Renombrar columnas o extraer nombre de agrupacion
-    flujos['fecha']=pd.to_datetime(flujos['fecha'])
-    
-    #Definir los bonos
-    flujos=flujos[flujos['isin'].isin(bonos.index)]
-    
-    #Filtrado de flujos incompletos
-    for i in flujos.pivot_table(index='isin').index:
-        if(flujos[flujos['isin']==i]['amortizacion'].sum()!=1000000
-           and flujos[flujos['isin']==i]['amortizacion'].sum()!=1000):
-            flujos=flujos.drop(flujos[flujos['isin']==i].index)
-    
-    #Generar un archivo excel con los datos
-    flujos.to_excel('G:/Mi unidad/MARKET DATA/BaseDatos/flujos.xlsx')    
-    
-    operaciones=importData(table='operaciones')
-    operaciones=operaciones[operaciones['isin'].isin(flujos.pivot_table(index='isin').index)]
-    operaciones=operaciones[(operaciones['isin'].isin(flujos.pivot_table(index='isin').index))&
-                           (~operaciones['ytm'].isna())&
-                           (operaciones['ytm']>0)]
-    
-    operaciones.to_excel('G:/Mi unidad/MARKET DATA/BaseDatos/operaciones.xlsx')
-    
-
 
