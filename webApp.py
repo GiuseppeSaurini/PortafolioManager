@@ -12,8 +12,9 @@ import streamlit as st
 import pandas as pd
 import requests
 import json
-from Mercados import Mercado,importData
-from datetime import datetime,date
+from Mercados import Mercado
+from ImportData import importData
+from datetime import datetime,timedelta,date
 
 
 #Definision de instrumentos
@@ -22,21 +23,29 @@ emisiones['fecha_vencimiento']=pd.to_datetime(emisiones['fecha_vencimiento'])
 emisiones=emisiones[~(emisiones['fecha_vencimiento'].isna())]
 emisiones=emisiones[emisiones['fecha_vencimiento']>datetime.today()]
 
-isin = st.selectbox(
+#Select section
+isin = st.sidebar.selectbox(
                     "Selecciona el bono que esta buscando",
                     emisiones.loc[:,'isin'].values
-                    
                     )
+flujos=importData(isin,'flujos').sort_values(by='fecha')
 
+bono=Mercado(flujos).getBond(isin) 
 
-mercado=Mercado(importData(isin,'flujos'),
-                operaciones=importData(isin,'operaciones'))  
-bono=mercado.getBond(isin) 
+fecha_cotizacion=st.sidebar.date_input('Selecciones la fecha de valoracion:')
+fecha_cotizacion=pd.to_datetime(date.today())
 
+price= st.sidebar.number_input('Precio Dirty:',value=100)
+
+rendimiento=bono.rendimiento(fecha_cotizacion,
+                             (price)/100*bono.info['ValorNominal'])
+
+st.title('Caotizador de Instrumentos Bursatiles')
+
+st.write('Datos del instrumento seleccionado')
 st.table(bono.info)
 
-price= st.number_input('Valoriza el bono:',value=100)
-rendimiento=bono.rendimiento(datetime.today(),bono.info['ValorNominal'])
-st.table(rendimiento)
+st.write('Datos valoración')
+st.table(bono.datosValor(rendimiento,fecha_cotizacion))
 
 
