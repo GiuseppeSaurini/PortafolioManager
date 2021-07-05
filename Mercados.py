@@ -85,9 +85,13 @@ class Bono:
         #Valoracion segun rendimiento
         valorActualNeto=self.valorActual(irr,fechaValor)
         #flujo de pago futuro desde fechaValor
-        flujo=self.flujoVigente(fechaValor).sort_values(by='fecha')
+        flujo=self.flujoVigente(fechaValor)
         #Valor nominal unitario
         valorNominal=self.info['ValorNominal']
+        
+        if(valorNominal==0):
+            valorNominal=(1000000 if self.info['Moneda']=='pyg' else 1000)
+            
         #Tasa cupon
         tasaCupon=self.info['TasaCupon']
         
@@ -95,13 +99,18 @@ class Bono:
         maduracion=int((self.info['Fecha_Vencimiento']-fechaValor)/timedelta(days=1))
         
         #Dias desde el ultimo pago cupon
-        dias_desde_ultimoCupon=round(flujo.iloc[0].at['interes']*365/(tasaCupon*valorNominal),0)
-        
-        dias_corridos=dias_desde_ultimoCupon-flujo.iloc[0].at['dias']
-        
-        interes_corrido=tasaCupon/365*dias_corridos*valorNominal
-        
-        interes_devengado_ultimoCupon=((1+irr)**(dias_corridos/365)-1)*valorActualNeto
+        if(tasaCupon>0):
+            dias_desde_ultimoCupon=round(flujo.iloc[0].at['interes']*365/(tasaCupon*valorNominal),0)
+            
+            dias_corridos=dias_desde_ultimoCupon-flujo.iloc[0].at['dias']
+            
+            interes_corrido=tasaCupon/365*dias_corridos*valorNominal
+            
+            interes_devengado_ultimoCupon=((1+irr)**(dias_corridos/365)-1)*valorActualNeto
+        else:
+            interes_corrido=0
+            interes_devengado_ultimoCupon=0
+            
         #Tasa nominal
         tasa_nominal=(flujo['pago'].sum()/valorActualNeto-1)*(365/maduracion)
         #Duration de la operacion
@@ -119,14 +128,14 @@ class Bono:
                'PrecioClean':pclean,
                'PrecioUltimoCupon':pCupon,
                'InteresCorrido':interes_corrido/valorNominal*100,
-                'Duration':duration/365,
+               'Duration':duration/365,
                'Maduracion':maduracion/365}
         
         
         return pd.DataFrame(data=datos,index=[0]).loc[0]
     
 class Mercado:
-    def __init__(self,flujos,operaciones=None,calificaciones=None):
+    def __init__(self,flujos,operaciones=None,calificaciones=''):
         
         #Cargar los instrumentos con la condicion que tenga flujo
         self.instrumentos=pd.DataFrame(index=flujos.pivot_table(index='isin').index)
@@ -138,7 +147,7 @@ class Mercado:
         #Operaciones del mercado
         if(type(operaciones)==type(pd.DataFrame())):
             self.operaciones=operaciones
-            self.operaciones['fecha_operacion']=pd.to_datetime(self.operaciones['fecha_operacion'])
+            #self.operaciones['fecha_operacion']=pd.to_datetime(self.operaciones['fecha_operacion'])
             print('Operaciones cargadas')
             #Cargar las calificaciones de cada emisor
             if(type(calificaciones)==type(pd.DataFrame())):
@@ -172,14 +181,20 @@ class Mercado:
     def curva(self,fecha_curva,fecha_rango,moneda):
         if(type(self.calificaciones)==type(pd.DataFrame())):
             #filtrar las operaciones en base a parametros
-            operaciones=self.operaciones[(self.operaciones['fecha_operacion']>=fecha_rango)&
-                                (self.operaciones['fecha_operacion']<=fecha_curva)&
-                                (self.operaciones['moneda']==moneda)]
-            
+            operaciones=self.operaciones[(self.operaciones['moneda']==moneda)&
+                                         (self.operaciones['ytm']>0)&
+                                         (self.operaciones['fecha_operacion']>=fecha_curva)&
+                                         (self.operaciones['fecha_operacion']<=fecha_rango)]
+            #Introducir el valor de DURATION
             for row in operaciones.itertuples():
-                operaciones.loc[row.Index,'duration']=self.getBond(row.isin).datosValor(row.ytm,fecha_curva)['Duration']
-            
-            curva=operaciones.pivot_table(index=['calificacion','emisor','isin'],values=['ytm','duration'],aggfunc=np.mean)
+                operaciones.loc[row.Index,'duration']=self.getBond(row.isin).datosValor(row.ytm,fecha_curva).at['Duration']
+            #Asignacion de variables
+            agrupacion=['calificacion','emisor','isin']
+            columns_values=['duration','ytm']
+            #Generar reporte
+            curva = operaciones.pivot_table(index=agrupacion,
+                                            values=columns_values)
+            #Devolver reporte
             return curva
         else:
             print('No se puede ejecutar esta funcion al no tener cargadas las calificaciones de los instrumentos')
