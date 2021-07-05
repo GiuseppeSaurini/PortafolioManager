@@ -12,20 +12,25 @@ Created on Fri Apr 30 12:03:50 2021
 import pandas as pd 
 #import numpy as np
 from datetime import datetime#, timedelta
-from M import Mercados
+from Mercados import Mercado
+from ImportData import importData
 
 
 if __name__ == "__main__":
     flujos = pd.read_excel('G:/Mi unidad/MARKET DATA/BaseDatos/Flujos.xlsx',index_col=0) 
-    operaciones = pd.read_excel('G:/Mi unidad/MARKET DATA/BaseDatos/operaciones.xlsx',index_col=0)
-    emisiones = pd.read_excel('G:/Mi unidad/MARKET DATA/BaseDatos/emisiones.xlsx',index_col=0)
+    #operaciones = pd.read_excel('G:/Mi unidad/MARKET DATA/BaseDatos/operaciones.xlsx',index_col=0)
     emisores = pd.read_excel('G:/Mi unidad/MARKET DATA/BaseDatos/Emisores.xlsx')
-            
-    mercado=Mercado(flujos,operaciones=operaciones,calificaciones=emisores)
     
     inicio=datetime(2021,3,1)
     fin=datetime(2021,5,11)
     moneda='pyg'
+    
+    #str(inicio.year)+"-"+str(inicio.month)+"-"+str(inicio.day)
+    
+    operaciones=importData(table='operaciones',fecha_base=str(inicio.year)+"-"+str(inicio.month)+"-"+str(inicio.day))
+    
+    mercado=Mercado(flujos,operaciones=operaciones,calificaciones=emisores)
+    
     curva=mercado.curva(inicio,fin,moneda)
     
     x=curva.plot(x='duration',y='ytm',kind='scatter')
