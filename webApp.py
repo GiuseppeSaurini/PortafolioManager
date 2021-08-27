@@ -18,8 +18,7 @@ from datetime import datetime,timedelta,date
 
 
 #Definision de instrumentos
-emisiones = importData(table='instrumentos',fecha_base='2020-01-01')
-#pd.read_excel('G:/Mi unidad/MARKET DATA/BaseDatos/emisiones.xlsx')
+emisiones = importData(table='instrumentos',fecha_base='2021-01-01')
 emisiones['fecha_vencimiento']=pd.to_datetime(emisiones['fecha_vencimiento'])
 emisiones=emisiones[~(emisiones['fecha_vencimiento'].isna())]
 emisiones=emisiones[emisiones['fecha_vencimiento']>datetime.today()]
@@ -28,7 +27,7 @@ emisiones=emisiones[emisiones['fecha_vencimiento']>datetime.today()]
 #Select section
 isin = st.sidebar.selectbox(
                     "Selecciona el bono que esta buscando",
-                    emisiones.loc[:,'isin'].values
+                    emisiones.index.values
                     )
 flujos=importData(isin,'flujos').sort_values(by='fecha')
 
@@ -53,9 +52,16 @@ if(cotizacion=='Precio Dirty'):
 elif(cotizacion=='Precio Clean'):
     price= st.sidebar.text_input('Precio Clean:',value='100.00')
     price=pd.to_numeric(price)
-
+    
+    dias_Corridos=bono.diasCorridos(fecha_cotizacion)
+    
+    interesCorrido=bono.info['TasaCupon']/365*dias_Corridos*100
+    
+    price_clean=(price+interesCorrido)/100*bono.info['ValorNominal']
+    
+    
     rendimiento=bono.rendimiento(fecha_cotizacion,
-                                (price)/100*bono.info['ValorNominal'])
+                                 price_clean)
 
 elif(cotizacion=='Rendimimiento'):
     price=st.sidebar.text_input('Rendimimiento',value='0.100')
