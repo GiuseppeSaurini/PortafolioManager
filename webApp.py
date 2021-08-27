@@ -18,7 +18,7 @@ from datetime import datetime,timedelta,date
 
 
 #Definision de instrumentos
-emisiones = importData(table='instrumentos',fecha_base='2021-01-01')
+emisiones = importData(table='instrumentos',fecha_base='2020-01-01')
 emisiones['fecha_vencimiento']=pd.to_datetime(emisiones['fecha_vencimiento'])
 emisiones=emisiones[~(emisiones['fecha_vencimiento'].isna())]
 emisiones=emisiones[emisiones['fecha_vencimiento']>datetime.today()]
