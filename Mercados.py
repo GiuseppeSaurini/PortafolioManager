@@ -10,7 +10,7 @@ Created on Fri Apr 30 12:08:17 2021
 # Cargar las librería de python
 import pandas as pd 
 import numpy as np
-from datetime import timedelta
+from datetime import timedelta,datetime,date
 from scipy.optimize import fsolve
 import icecream as ic
 
@@ -68,7 +68,20 @@ class Bono:
         df.loc[:,'dias']=((df.loc[:,'fecha']-fecha)/timedelta(days=1)).astype(int)
         
         return df
+    
+    def diasCorridos(self,fechaValor):
         
+        if(fechaValor<self.info['Fecha_Emision']):
+            print('La fecha ',fechaValor,' es previo a la fecha de emision')
+            return np.nan
+        else:
+            fecha_ultimo_pago=self.flujo[self.flujo['fecha']<fechaValor]['fecha'].max()
+            if(type(fecha_ultimo_pago)!=type(datetime.today())):
+                fecha_ultimo_pago=self.info['Fecha_Emision']
+            diasCorridos=int((fechaValor-fecha_ultimo_pago)/timedelta(days=1))
+            
+            return diasCorridos
+    
     def rendimiento(self,fechaValor,valorActual):
         flujo=self.flujoVigente(fechaValor)
         return irr(flujo['pago'],flujo['dias'],valorActual)
