@@ -58,7 +58,7 @@ class Bono:
                            index=[0])
         self.info=df.loc[0]
         
-    def flujoVigente(self,fecha):
+    def flujoVigente(self,fecha,fecha_fin=''):
         #determinar el flujo a cobrar
         df=self.flujo[(self.flujo['fecha']>fecha)]
         
@@ -67,7 +67,10 @@ class Bono:
         #calcular dias a cobrar de cada flujo
         df.loc[:,'dias']=((df.loc[:,'fecha']-fecha)/timedelta(days=1)).astype(int)
         
-        return df
+        if(fecha_fin==''):
+            return df
+            
+        return df[df.fecha<=fecha_fin]
     
     def diasCorridos(self,fechaValor):
         
