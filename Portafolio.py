@@ -10,6 +10,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from scipy.optimize import fsolve
 from Mercados import Mercado,Bono
+import icecream as ic
 
 
 #Funcion del Net Present Value a una tasa de descuento
@@ -40,6 +41,7 @@ class Portafolio:
        
     def operacion(self,tipo_op,mercado,isin,fechaOp,valorUnitario,cantidad):
         
+        
         tirOp=mercado.getBond(isin).rendimiento(fechaOp,valorUnitario)
 
         self.operaciones=self.operaciones.append({'operacion':tipo_op,
@@ -51,6 +53,7 @@ class Portafolio:
                                                       'ValorOperacion':valorUnitario*cantidad,
                                                       'bono':mercado.getBond(isin)
                                                      },ignore_index=True)
+        
     def stockPortafolio(self,fechaValor):
         #Definir columnas df
         stock=pd.DataFrame(columns=['isin','cantidad','tirOp','ValorBono'])
@@ -93,15 +96,16 @@ class Portafolio:
     def valorPortafolio(self,fechaValor):
         npv=0
         for item in self.stockPortafolio(fechaValor).itertuples():
-            npv+=item.ValorBono*item.cantidad
+            npv+=item.ValorBono
         return npv
     
     def flujoPortafolio(self,fecha_inicial,fecha_final):
         
         if(fecha_inicial<self.operaciones['fecha'].min()):
             fecha_inicial=self.operaciones['fecha'].min()
-        fechadesde=fecha_inicial
-        fechahasta=fecha_final
+        
+        
+        fecha_final=fecha_final
         
         wordsCompra=['compra','Compra','COMPRA']
         wordsVenta=['venta','Venta','VENTA']
@@ -110,28 +114,29 @@ class Portafolio:
         flujoPort=pd.DataFrame(columns=['fecha','isin','concepto','pago'])
 
         #Carga de los bonos en stock a la fecha de inicio y sus flujos
-        for item in self.stockPortafolio(fechadesde).itertuples():
-            flujoPort=flujoPort.append({'fecha':fechadesde,
+        for item in self.stockPortafolio(fecha_inicial).itertuples():
+            flujoPort=flujoPort.append({'fecha':fecha_inicial,
                                         'isin':item.isin,
                                         'concepto':'valor inicial',
                                        'pago':-item.ValorBono
                                        }
                                        ,ignore_index=True)
-            for f in mercado.getBond(item.isin).flujoVigente(fechadesde,fechahasta).itertuples():
+            
+            for f in item.bono.flujoVigente(fecha_inicial,fecha_final).itertuples():
                 flujoPort=flujoPort.append({'fecha':f.fecha,
                                             'isin':item.isin,
                                             'concepto':'interes',
-                                            'pago':f.int*item.cantidad}
+                                            'pago':f.interes*item.cantidad}
                                            ,ignore_index=True)
                 
                 flujoPort=flujoPort.append({'fecha':f.fecha,
                                             'isin':item.isin,
                                             'concepto':'capital',
-                                            'pago':f.amort*item.cantidad}
+                                            'pago':f.amortizacion*item.cantidad}
                                            ,ignore_index=True)
 
         #Cargar las operaciones de compra y de venta durante el periodo y sus flujos
-        for item in self.operaciones[(self.operaciones['fecha']>fechadesde)&(self.operaciones['fecha']<fechahasta)].itertuples():
+        for item in self.operaciones[(self.operaciones['fecha']>fecha_inicial)&(self.operaciones['fecha']<fecha_final)].itertuples():
             if(item.operacion in wordsCompra):
                 #Cargar la operacion de compra del bono agregando en negativo valor de la operacion
                 flujoPort=flujoPort.append({'fecha':item.fecha,
@@ -140,16 +145,16 @@ class Portafolio:
                                            'pago':-item.ValorOperacion}
                                            ,ignore_index=True)
                 #cargar los flujos del bono comprado, por su cantidad, hasta fecha estipulada final
-                for f in mercado.getBond(item.isin).flujoVigente(item.fecha,fechahasta).itertuples():
+                for f in item.bono.flujoVigente(item.fecha,fecha_final).itertuples():
                     flujoPort=flujoPort.append({'fecha':f.fecha,
                                                 'isin':item.isin,
                                                 'concepto':'interes',
-                                                'pago':f.int*item.cantidad}
+                                                'pago':f.interes*item.cantidad}
                                                ,ignore_index=True)
                     flujoPort=flujoPort.append({'fecha':f.fecha,
                                                 'isin':item.isin,
                                                 'concepto':'capital',
-                                                'pago':f.amort*item.cantidad}
+                                                'pago':f.amortizacion*item.cantidad}
                                                ,ignore_index=True)
             #Cargar operaciones de venta
             elif(item.operacion in wordsVenta):
@@ -160,20 +165,20 @@ class Portafolio:
                                            'pago':item.ValorOperacion}
                                            ,ignore_index=True)
                 #Restar los flujos restante del bono por la cantidad vendida
-                for f in mercado.getBond(item.isin).flujoVigente(item.fecha,fechahasta).itertuples():
+                for f in item.bono.flujoVigente(item.fecha,fecha_final).itertuples():
                     flujoPort=flujoPort.append({'fecha':f.fecha,
                                                 'isin':item.isin,
                                                 'concepto':'interes',
-                                                'pago':-f.int*item.cantidad}
+                                                'pago':-f.interes*item.cantidad}
                                                ,ignore_index=True)
                     flujoPort=flujoPort.append({'fecha':f.fecha,
                                                 'isin':item.isin,
                                                 'concepto':'capital',
-                                                'pago':-f.amort*item.cantidad}
+                                                'pago':-f.amortizacion*item.cantidad}
                                                ,ignore_index=True)
         #Agragar valor final de cada bono final
-        for item in self.stockPortafolio(fechahasta).itertuples():
-            flujoPort=flujoPort.append({'fecha':fechahasta,
+        for item in self.stockPortafolio(fecha_final).itertuples():
+            flujoPort=flujoPort.append({'fecha':fecha_final,
                                         'isin':item.isin,
                                         'concepto':'valor final',
                                        'pago':item.ValorBono}
@@ -193,28 +198,42 @@ class Portafolio:
         
         #Establecer las fechas de valoracion
         dates=pd.Series(pd.date_range(fecha_inicial,fecha_final,freq=frequency).values)
-        if(f[~(f['fecha'].isin(dates))].shape[0]>0):
-            d=pd.Series(f[~(f['fecha'].isin(dates))].pivot_table(index='fecha').index)
-            dates=dates.append(d,ignore_index=True)
+        
+        #if(f[~(f['fecha'].isin(dates))].shape[0]>0):
+        
+        #Definir fecha de flujo
+        d=pd.Series(f[~(f['fecha'].isin(dates))].pivot_table(index='fecha').index)
+        
+        #Cargar fechas de flujo en caso que falten fechas especificas de flujo
+        dates=dates.append(d,ignore_index=True)
+        
         
         hist=pd.DataFrame(index=dates.sort_values().values)
         
         #Valoracion inicial de portafolio
         startValue=self.valorPortafolio(fecha_inicial)
+        
         valorAcumulado=1
-        fecha=fecha_inicial
+        #fecha=fecha_inicial
         word=['valor inicial','valor final']
         
         for row in hist.itertuples():
+            #Valor inicial del portafolio
             hist.loc[row.Index,'valorPrtafolio']=self.valorPortafolio(row.Index)
+                        
             hist.loc[row.Index,'flujo']=(f[~(f['concepto'].isin(word))&(f['fecha']==row.Index)]['pago'].sum())
+            
             #hist.loc[row.Index,'flujo']=-(f[~(f['concepto'].isin(word))&(f['fecha']<=row.Index)&(f['fecha']>fecha)]['pago'].sum())
             #hist.loc[row.Index,'dias']=((row.Index-fecha_inicial)/timedelta(days=1))
             hist.loc[row.Index,'growth']=(hist.loc[row.Index,'valorPrtafolio']+hist.loc[row.Index,'flujo'])/startValue-1
+            
             #hist.loc[row.Index,'timeWeightedRetunr']=(hist.loc[row.Index,'growth']**(365/hist.loc[row.Index,'dias']))-1
             #hist.loc[row.Index,'anualRetunr']=(hist.loc[row.Index,'growth']-1)*(365/hist.loc[row.Index,'dias'])
+            
             hist.loc[row.Index,'growthValue']=valorAcumulado*(1+hist.loc[row.Index,'growth'])
+            
             valorAcumulado=hist.loc[row.Index,'growthValue']
+            
             startValue=hist.loc[row.Index,'valorPrtafolio']
             #fecha=row.Index
         return hist
