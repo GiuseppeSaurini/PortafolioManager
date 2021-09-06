@@ -10,7 +10,7 @@ Created on Fri Apr 30 16:03:23 2021
 # Cargar las librería de python data analysis
 import pandas as pd 
 #import numpy as np
-#from datetime import datetime, timedelta
+from datetime import datetime, timedelta
 #import os
 import requests
 import json
@@ -20,6 +20,7 @@ def importData(isin=None,table='instrumentos',fecha_base=''):
     #API Datawharehousing url y contraseña
     url_DWH='https://data.marketdata.com.py/api/v1/'
     key='?api_key=Tp1u3Wb0y2X31w4ZMjcRxAldlpHjC8hy'
+    
     
     #Definir que tabla se busca
     query=url_DWH+table+key
