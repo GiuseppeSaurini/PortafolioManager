@@ -19,11 +19,13 @@ if __name__ == "__main__":
     # operaciones = pd.read_excel('G:/Mi unidad/MARKET DATA/BaseDatos/operaciones.xlsx',index_col=0)
     # emisiones = pd.read_excel('G:/Mi unidad/MARKET DATA/BaseDatos/emisiones.xlsx',index_col=0)
     # emisores = pd.read_excel('G:/Mi unidad/MARKET DATA/BaseDatos/Emisores.xlsx')
-    isin_bono='PYATM01F8823'
+    isin_bono='PYNUC05F1356'
     api_operaciones=importData(isin_bono,'operaciones')
     api_flujos=importData(isin_bono,'flujos')
         
     mercado=Mercado(api_flujos,api_operaciones)
+    
+    bono=mercado.getBond(isin_bono)
       
     bono_history=mercado.history_pClean(isin_bono)
     
