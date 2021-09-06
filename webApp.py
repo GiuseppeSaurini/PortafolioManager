@@ -18,10 +18,15 @@ from datetime import datetime,timedelta,date
 
 
 #Definision de instrumentos
-emisiones = importData(table='instrumentos',fecha_base='2020-01-01')
+
+fecha=datetime.today()
+fecha_str=str(fecha.year)+'-'+str(fecha.month)+'-'+str(fecha.day)
+
+emisiones = importData(table='instrumentos',fecha_base=fecha_str)
 emisiones['fecha_vencimiento']=pd.to_datetime(emisiones['fecha_vencimiento'])
 emisiones=emisiones[~(emisiones['fecha_vencimiento'].isna())]
-emisiones=emisiones[emisiones['fecha_vencimiento']>datetime.today()]
+
+#emisiones=emisiones[emisiones['fecha_vencimiento']>datetime.today()]
 
 
 #Select section
@@ -29,12 +34,15 @@ isin = st.sidebar.selectbox(
                     "Selecciona el bono que esta buscando",
                     emisiones.index.values
                     )
+
 flujos=importData(isin,'flujos').sort_values(by='fecha')
 
 bono=Mercado(flujos).getBond(isin) 
 
-fecha_cotizacion=st.sidebar.date_input('Selecciones la fecha de valoracion:')
-fecha_cotizacion=pd.to_datetime(date.today())
+fecha_cotizacion=st.sidebar.date_input('Selecciones la fecha de valoracion:',
+                                       value=date.today())
+
+fecha_cotizacion=pd.to_datetime(fecha_cotizacion)
 
 cotizacion=st.sidebar.selectbox(
                                     "Selecciona metodo de cotizacion",
@@ -68,7 +76,7 @@ elif(cotizacion=='Rendimimiento'):
     price=pd.to_numeric(price)
     rendimiento=price
 
-st.title('Cotizador de Instrumentos Bursatiles')
+st.title('Valoración de Bono')
 
 st.write('Datos del instrumento seleccionado')
 st.table(bono.info)
