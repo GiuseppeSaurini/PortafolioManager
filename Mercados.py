@@ -116,33 +116,28 @@ class Bono:
         
         #Dias desde el ultimo pago cupon
         if(tasaCupon>0):
-            dias_desde_ultimoCupon=round(flujo.iloc[0].at['interes']*365/(tasaCupon*valorNominal),0)
-            
-            dias_corridos=dias_desde_ultimoCupon-flujo.iloc[0].at['dias']
-            
+            dias_corridos=self.diasCorridos(fechaValor)
             interes_corrido=tasaCupon/365*dias_corridos*valorNominal
-            
-            interes_devengado_ultimoCupon=((1+irr)**(dias_corridos/365)-1)*valorActualNeto
         else:
             interes_corrido=0
-            interes_devengado_ultimoCupon=0
             
         #Tasa nominal
         tasa_nominal=(flujo['pago'].sum()/valorActualNeto-1)*(365/maduracion)
+
         #Duration de la operacion
         duration=sum(flujo['pago']/(1+irr)**(flujo['dias']/365)*flujo['dias'])/valorActualNeto
         
         #Precios
         pdirty=valorActualNeto/valorNominal*100
         pclean=(valorActualNeto-interes_corrido)/valorNominal*100
-        pCupon=(valorActualNeto-interes_devengado_ultimoCupon)/valorNominal*100
+        pBase=(valorActualNeto/((1+irr)**(dias_corridos/365)))/valorNominal*100
         
             
         datos={'Rendimiento':irr,
                'TasaNominal':tasa_nominal,
                'PrecioDirty':pdirty,
                'PrecioClean':pclean,
-               'PrecioUltimoCupon':pCupon,
+               'PrecioUltimoCupon':pBase,
                'InteresCorrido':interes_corrido/valorNominal*100,
                'Duration':duration/365,
                'Maduracion':maduracion/365}
