@@ -95,7 +95,10 @@ class Bono:
             value=npv(irr,flujo['pago'],flujo['dias'])
             return value
         except:
+            print('ERROR')
             print(self.isin,flujo['dias'])
+            
+
         
     def datosValor(self,irr,fechaValor):
         #Valoracion segun rendimiento
