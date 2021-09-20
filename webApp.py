@@ -63,8 +63,7 @@ if(metodo_cotizacion=='Precio Dirty'):
 
     valor=(price)/100*bono.info['ValorNominal']
 
-    rendimiento=bono.rendimiento(fecha_cotizacion,
-                                valor)
+    rendimiento=bono.rendimiento(fecha_cotizacion,valor)
 
 elif(metodo_cotizacion=='Precio Clean'):
     price= st.sidebar.text_input('Precio Clean:',value='100.00')
@@ -76,8 +75,7 @@ elif(metodo_cotizacion=='Precio Clean'):
     
     valor=(price+interesCorrido)/100*bono.info['ValorNominal']
     
-    rendimiento=bono.rendimiento(fecha_cotizacion,
-                                 valor)
+    rendimiento=bono.rendimiento(fecha_cotizacion,valor)
 
 elif(metodo_cotizacion=='Precio Base'):
     price_base= st.sidebar.text_input('Precio Base:',value='100.00')
@@ -85,6 +83,7 @@ elif(metodo_cotizacion=='Precio Base'):
     dias_Corridos=bono.diasCorridos(fecha_cotizacion)
     nueva_fecha_cotizacion=fecha_cotizacion-timedelta(days=dias_Corridos)
     valor=price_base/100*bono.info['ValorNominal']
+    
     rendimiento=bono.rendimiento(nueva_fecha_cotizacion,valor)
     
 
@@ -92,6 +91,7 @@ elif(metodo_cotizacion=='Rendimimiento(TIR)'):
     price=st.sidebar.text_input('Rendimimiento',value='0.100')
     price=pd.to_numeric(price)
     rendimiento=price
+    
     price=bono.valorActual(rendimiento,fecha_cotizacion)/bono.info['ValorNominal']*100
 
 cantidad= st.sidebar.number_input('Cantidad a cotizar',value=0)

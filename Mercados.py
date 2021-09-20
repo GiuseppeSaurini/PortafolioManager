@@ -78,9 +78,10 @@ class Bono:
             print('La fecha ',fechaValor,' es previo a la fecha de emision')
             return np.nan
         else:
-            fecha_ultimo_pago=self.flujo[self.flujo['fecha']<fechaValor]['fecha'].max()
+            fecha_ultimo_pago=self.flujo[self.flujo['fecha']<=fechaValor]['fecha'].max()
             if(type(fecha_ultimo_pago)!=type(datetime.today())):
                 fecha_ultimo_pago=self.info['Fecha_Emision']
+                fecha_ultimo_pago=pd.to_datetime(fecha_ultimo_pago)
             diasCorridos=int((fechaValor-fecha_ultimo_pago)/timedelta(days=1))
             
             return diasCorridos
