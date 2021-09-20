@@ -19,10 +19,11 @@ from datetime import datetime,timedelta,date
 st.title('Valoración de Bono')
 
 #Definision de instrumentos
-
+#Fecha predeterminada
 fecha=datetime.today()
 fecha_str=str(fecha.year)+'-'+str(fecha.month)+'-'+str(fecha.day)
 
+#Importar los instrumentos de MarketData
 emisiones = importData(table='instrumentos',fecha_base=fecha_str)
 emisiones['fecha_vencimiento']=pd.to_datetime(emisiones['fecha_vencimiento'])
 emisiones=emisiones[~(emisiones['fecha_vencimiento'].isna())]
@@ -60,10 +61,10 @@ if(metodo_cotizacion=='Precio Dirty'):
     price= st.sidebar.text_input('Precio Dirty:',value='100.00')
     price=pd.to_numeric(price)
 
-    valorActualNeto=(price)/100*bono.info['ValorNominal']
+    valor=(price)/100*bono.info['ValorNominal']
 
     rendimiento=bono.rendimiento(fecha_cotizacion,
-                                valorActualNeto)
+                                valor)
 
 elif(metodo_cotizacion=='Precio Clean'):
     price= st.sidebar.text_input('Precio Clean:',value='100.00')
@@ -73,28 +74,33 @@ elif(metodo_cotizacion=='Precio Clean'):
     
     interesCorrido=bono.info['TasaCupon']/365*dias_Corridos*100
     
-    valor_clean=(price+interesCorrido)/100*bono.info['ValorNominal']
+    valor=(price+interesCorrido)/100*bono.info['ValorNominal']
     
     rendimiento=bono.rendimiento(fecha_cotizacion,
-                                 valor_clean)
+                                 valor)
 
 elif(metodo_cotizacion=='Precio Base'):
     price_base= st.sidebar.text_input('Precio Base:',value='100.00')
     price_base=pd.to_numeric(price_base)
     dias_Corridos=bono.diasCorridos(fecha_cotizacion)
     nueva_fecha_cotizacion=fecha_cotizacion-timedelta(days=dias_Corridos)
-    valor_base=price_base/100*bono.info['ValorNominal']
-    rendimiento=bono.rendimiento(nueva_fecha_cotizacion,valor_base)
+    valor=price_base/100*bono.info['ValorNominal']
+    rendimiento=bono.rendimiento(nueva_fecha_cotizacion,valor)
     
 
 elif(metodo_cotizacion=='Rendimimiento(TIR)'):
     price=st.sidebar.text_input('Rendimimiento',value='0.100')
     price=pd.to_numeric(price)
     rendimiento=price
+    price=bono.valorActual(rendimiento,fecha_cotizacion)/bono.info['ValorNominal']*100
 
-
+cantidad= st.sidebar.number_input('Cantidad a cotizar',value=0)
 
 st.write('Datos valoración')
-st.table(bono.datosValor(rendimiento,fecha_cotizacion))
+valoracion=bono.datosValor(rendimiento,fecha_cotizacion)
 
+st.table(valoracion)
 
+volumen_Cotizacion=price/100*bono.info['ValorNominal']
+
+volumen_Cotizacion
