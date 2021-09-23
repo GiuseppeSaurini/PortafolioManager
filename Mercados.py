@@ -12,7 +12,6 @@ import pandas as pd
 import numpy as np
 from datetime import timedelta,datetime,date
 from scipy.optimize import fsolve
-import icecream as ic
 
 
 
