@@ -49,6 +49,7 @@ fecha_cotizacion=st.sidebar.date_input('Selecciones la fecha de valoracion:',
 
 fecha_cotizacion=pd.to_datetime(fecha_cotizacion)
 
+#Seleccion de metodo de valoracion del Bono 
 metodo_cotizacion=st.sidebar.selectbox(
                                     "Selecciona metodo de cotizacion",
                                         ['Precio Dirty',
@@ -85,7 +86,6 @@ elif(metodo_cotizacion=='Precio Base'):
     valor=price_base/100*bono.info['ValorNominal']
     
     rendimiento=bono.rendimiento(nueva_fecha_cotizacion,valor)
-    
 
 elif(metodo_cotizacion=='Rendimimiento(TIR)'):
     price=st.sidebar.text_input('Rendimimiento',value='0.100')
@@ -94,8 +94,10 @@ elif(metodo_cotizacion=='Rendimimiento(TIR)'):
     
     price=bono.valorActual(rendimiento,fecha_cotizacion)/bono.info['ValorNominal']*100
 
+#Igresa la cantidad de Bonos a ser Cotizados
 cantidad= st.sidebar.number_input('Cantidad a cotizar',value=0)
 
+#Tabla de Valoracion del Bono
 st.write('Datos valoración')
 valoracion=bono.datosValor(rendimiento,fecha_cotizacion)
 
