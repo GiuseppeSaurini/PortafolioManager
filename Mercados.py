@@ -15,12 +15,20 @@ from scipy.optimize import fsolve
 
 
 
-#Funcion del Net Present Value a una tasa de descuento
-def npv(irr, cfs, dias,va=0):  
-    #irr es el tasa al que se descuenta el flujo futuro
-    #cfs son los valores del flujo a descontar
-    #dias se refiere a los dias de descuento de cada valor del flujo
+#Funcion Net Present Value a una tasa de descuento
+def npv(irr, cfs, dias,va=0):
+    #Definicio de variables
     
+    #irr es el tasa al que se descuenta el flujo futuro
+    #cfs es el flujo a descontar
+    #dias se refiere a cantidad de dias a descontar cada flujo
+    #va se refiere al valor actual o valor de la inversion
+    '''
+    El Valor Actual (va) es opcional ya que en algunas ocaciones este valor
+    no se tiene, ya que es el valor que se desea hayar
+    '''
+
+    #Funcion de descuento
     return np.sum(cfs/(1+ irr)**(dias/365))-va
 
 #Funcion que define la tasa en la que NPV es 0
