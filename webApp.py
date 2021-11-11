@@ -103,6 +103,6 @@ valoracion=bono.datosValor(rendimiento,fecha_cotizacion)
 
 st.table(valoracion)
 
-volumen_Cotizacion=price/100*bono.info['ValorNominal']
+volumen_Cotizacion=price/100*bono.info['ValorNominal']*cantidad
 
 volumen_Cotizacion
