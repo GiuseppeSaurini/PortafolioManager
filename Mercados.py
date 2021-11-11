@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 from datetime import timedelta,datetime,date
 from scipy.optimize import fsolve
-
+import icecream as ic
 
 
 #Funcion Net Present Value a una tasa de descuento
@@ -54,7 +54,7 @@ class Bono:
         #Informacion del Bono
         df=pd.DataFrame(data={'isin':self.isin,
                                 'simbolo':self.isin[2:5],
-                                'Emisor':flujo['emisor'].values[0],
+                                'Emisor':flujo['emisor/nombre'].values[0],
                                 'Tipo_Instrumento':flujo['tipo_instrumento'].values[0],
                                 'Moneda':flujo['moneda'].values[0],
                                 'Fecha_Emision':flujo['fecha_colocacion'].values[0],
@@ -63,8 +63,10 @@ class Bono:
                                 'TasaCupon':flujo['tasa_interes'].values[0]
                                 },
                            index=[0])
+        #Traformar a Serie
         self.info=df.loc[0]
-        
+    
+      
     def flujoVigente(self,fecha,fecha_fin=''):
         #determinar el flujo a cobrar
         df=self.flujo[(self.flujo['fecha']>fecha)]
@@ -79,19 +81,37 @@ class Bono:
             
         return df[df.fecha<=fecha_fin]
     
+    def fecha_ultimo_pago(self,fechaValor):
+        #Definir si se pago cupon antes de la fechaValor
+        if(pd.notna(self.flujo[self.flujo['fecha']<=fechaValor]['fecha'].max())):
+            
+            return self.flujo[self.flujo['fecha']<=fechaValor]['fecha'].max()
+         
+        elif(pd.notna(self.info['Fecha_Emision'])):
+            
+            #Descartar que la fechaValor no sea antes que la emision
+            if(fechaValor<self.info['Fecha_Emision']):
+                print('La fecha ',fechaValor,' es previo a la fecha de emision')
+                return np.nan
+            else:
+                return self.info['Fecha_Emision']
+        else:
+            print('Error: Fecha_Emision esta vacio')
+            return np.nan
+        
+            
+            
     def diasCorridos(self,fechaValor):
         
-        if(fechaValor<self.info['Fecha_Emision']):
-            print('La fecha ',fechaValor,' es previo a la fecha de emision')
-            return np.nan
-        else:
-            fecha_ultimo_pago=self.flujo[self.flujo['fecha']<=fechaValor]['fecha'].max()
-            if(type(fecha_ultimo_pago)!=type(datetime.today())):
-                fecha_ultimo_pago=self.info['Fecha_Emision']
-                fecha_ultimo_pago=pd.to_datetime(fecha_ultimo_pago)
-            diasCorridos=int((fechaValor-fecha_ultimo_pago)/timedelta(days=1))
+        if(pd.notna(self.fecha_ultimo_pago(fechaValor))):
             
+            fechaUltimoCupon=self.fecha_ultimo_pago(fechaValor)
+            
+            diasCorridos=int((fechaValor-fechaUltimoCupon)/timedelta(days=1))
+                
             return diasCorridos
+        else:
+            return np.nan
     
     def rendimiento(self,fechaValor,valorActual):
         flujo=self.flujoVigente(fechaValor)
@@ -106,18 +126,19 @@ class Bono:
             print('ERROR')
             print(self.isin,flujo['dias'])
             
-
+    
         
     def datosValor(self,irr,fechaValor):
         #Valoracion segun rendimiento
         valorActualNeto=self.valorActual(irr,fechaValor)
         #flujo de pago futuro desde fechaValor
         flujo=self.flujoVigente(fechaValor)
-        #Valor nominal unitario
-        valorNominal=self.info['ValorNominal']
         
-        if(valorNominal==0):
+        #Valor nominal unitario
+        if(self.info['ValorNominal']==0):
             valorNominal=(1000000 if self.info['Moneda']=='pyg' else 1000)
+        else:
+            valorNominal=self.info['ValorNominal']
             
         #Tasa cupon
         tasaCupon=self.info['TasaCupon']
@@ -169,21 +190,18 @@ class Mercado:
         #Operaciones del mercado
         if(type(operaciones)==type(pd.DataFrame())):
             self.operaciones=operaciones
-            #self.operaciones['fecha_operacion']=pd.to_datetime(self.operaciones['fecha_operacion'])
+            
+            self.operaciones=self.operaciones.rename(columns={'emisor/calificacion':'calificacion'})
+            
+            #Carga de calificacion simple
+            for row in self.operaciones.itertuples():
+                calif=str(row.calificacion).replace('py','')
+                calif=calif.replace('+','')
+                calif=calif.replace('-','')
+                self.operaciones.loc[row.Index,'calif_simple']=calif
+            
             print('Operaciones cargadas')
-            #Cargar las calificaciones de cada emisor
-            if(type(calificaciones)==type(pd.DataFrame())):
-                self.calificaciones=calificaciones
-                #recorido por todas las operaciones
-                for row in self.operaciones.itertuples():
-                    if(calificaciones[calificaciones['SIMBOLO']==row.simbolo_emisor].shape[0]>0): 
-                        cali=calificaciones[calificaciones['SIMBOLO']==row.simbolo_emisor].iloc[0].at['Calificacion_letras']
-                        self.operaciones.loc[row.Index,'calificacion']=cali
-                    else:
-                        self.operaciones.loc[row.Index,'calificacion']=np.nan
-                print("Calificaciones cargadas")
-            else:
-                self.calificaciones=None
+        
         else:
             pass
                 
@@ -201,26 +219,22 @@ class Mercado:
         return lbono
     
     def curva(self,fecha_curva,fecha_rango,moneda):
-        if(type(self.calificaciones)==type(pd.DataFrame())):
-            #filtrar las operaciones en base a parametros
-            operaciones=self.operaciones[(self.operaciones['moneda']==moneda)&
-                                         (self.operaciones['ytm']>0)&
-                                         (self.operaciones['fecha_operacion']>=fecha_curva)&
-                                         (self.operaciones['fecha_operacion']<=fecha_rango)]
-            #Introducir el valor de DURATION
-            for row in operaciones.itertuples():
-                operaciones.loc[row.Index,'duration']=self.getBond(row.isin).datosValor(row.ytm,fecha_curva).at['Duration']
-            #Asignacion de variables
-            agrupacion=['calificacion','emisor','isin']
-            columns_values=['duration','ytm']
-            #Generar reporte
-            curva = operaciones.pivot_table(index=agrupacion,
-                                            values=columns_values)
-            #Devolver reporte
-            return curva
-        else:
-            print('No se puede ejecutar esta funcion al no tener cargadas las calificaciones de los instrumentos')
-            return None     
+        #filtrar las operaciones en base a parametros
+        operaciones=self.operaciones[(self.operaciones['moneda']==moneda)&
+                                     (self.operaciones['ytm']>0)&
+                                     (self.operaciones['fecha_operacion']>=fecha_curva)&
+                                     (self.operaciones['fecha_operacion']<=fecha_rango)]
+        
+        #Asignacion de variables
+        agrupacion=['calif_simple','emisor','isin']
+        columns_values=['ytm']
+        
+        #Generar reporte
+        curva = operaciones.pivot_table(index=agrupacion,
+                                        values=columns_values)
+        
+        #Devolver reporte
+        return curva
         
     def history(self,bono):
         
