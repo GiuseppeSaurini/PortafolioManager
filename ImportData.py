@@ -9,19 +9,19 @@ Created on Fri Apr 30 16:03:23 2021
 
 # Cargar las librería de python data analysis
 import pandas as pd 
-#import numpy as np
+import numpy as np
 from datetime import datetime, timedelta
-#import os
+import os
 import requests
 import json
 
 
-def importData(isin='',table='instrumentos',fecha_base=''):
+def importData(isin='',table='instrumentos/list',fecha_base=''):
     #API Datawharehousing url y contraseña
 
 
     url_DWH='https://data.marketdata.com.py/api/v1/'
-    key='?api_key=Tp1u3Wb0y2X31w4ZMjcRxAldlpHjC8hy'
+    key='?api_key='+os.environ.get('MD_API_KEY')
     
     
     #Definir que tabla se busca
