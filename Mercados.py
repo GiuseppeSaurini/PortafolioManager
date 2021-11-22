@@ -67,19 +67,20 @@ class Bono:
         self.info=df.loc[0]
     
       
-    def flujoVigente(self,fecha,fecha_fin=''):
+    def flujoVigente(self,fechaValor,fecha_fin=''):
         #determinar el flujo a cobrar
-        df=self.flujo[(self.flujo['fecha']>fecha)]
+        df=self.flujo[(self.flujo['fecha']>fechaValor)]
         
-        #calcular pago total de los flujos 
+        #calcular el flujo de pago sin discriminar el proposito 
         df.loc[:,'pago']=df.loc[:,'interes']+df.loc[:,'amortizacion']
         #calcular dias a cobrar de cada flujo
-        df.loc[:,'dias']=((df.loc[:,'fecha']-fecha)/timedelta(days=1)).astype(int)
+        df.loc[:,'dias']=((df.loc[:,'fecha']-fechaValor)/timedelta(days=1)).astype(int)
+        
         
         if(fecha_fin==''):
             return df
-            
-        return df[df.fecha<=fecha_fin]
+        else:
+            return df[df.fecha<=fecha_fin]
     
     def fecha_ultimo_pago(self,fechaValor):
         #Definir si se pago cupon antes de la fechaValor
@@ -98,8 +99,7 @@ class Bono:
         else:
             print('Error: Fecha_Emision esta vacio')
             return np.nan
-        
-            
+             
             
     def diasCorridos(self,fechaValor):
         
@@ -114,7 +114,9 @@ class Bono:
             return np.nan
     
     def rendimiento(self,fechaValor,valorActual):
+        #Definir el flujo residual
         flujo=self.flujoVigente(fechaValor)
+        
         return irr(flujo['pago'],flujo['dias'],valorActual)
     
     def valorActual(self,irr,fechaValor):
@@ -126,8 +128,7 @@ class Bono:
             print('ERROR')
             print(self.isin,flujo['dias'])
             
-    
-        
+         
     def datosValor(self,irr,fechaValor):
         #Valoracion segun rendimiento
         valorActualNeto=self.valorActual(irr,fechaValor)
@@ -174,8 +175,34 @@ class Bono:
                'Duration':duration/365,
                'Maduracion':maduracion/365}
         
-        
+        #Transformar a Serie
         return pd.DataFrame(data=datos,index=[0]).loc[0]
+    
+class CDA(Bono):
+    def __init__(self,serie,flujo,emisor='',tipo_instrumento='',moneda='',
+                 fecha_colocacion='',tasa_interes=''):
+        #identificacion del bono
+        self.serie=serie
+        
+        #flujo de pago
+        self.flujo=flujo.loc[:,['fecha','interes','amortizacion']]
+        #Ordenar por fecha
+        self.flujo=self.flujo.sort_values(by='fecha')
+        
+        #Informacion del Bono
+        df=pd.DataFrame(data={'serie':serie,
+                                'simbolo':'',
+                                'Emisor':emisor,
+                                'Tipo_Instrumento':tipo_instrumento,
+                                'Moneda':moneda,
+                                'Fecha_Emision':fecha_colocacion,
+                                'Fecha_Vencimiento':self.flujo['fecha'].max(),
+                                'ValorNominal':self.flujo['amortizacion'].sum(),
+                                'TasaCupon':tasa_interes
+                                },
+                           index=[0])
+        #Traformar a Serie
+        self.info=df.loc[0]
     
 class Mercado:
     def __init__(self,flujos,operaciones=None,calificaciones=''):
