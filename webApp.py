@@ -106,9 +106,9 @@ valoracion=bono.datosValor(rendimiento,fecha_cotizacion)
 
 col1, col2, col3 = st.columns(3)
 
-col1=metric('Rendimiento',str(valoracion['Rendimiento']))
-col2=metric('Precio Dirty',str(value=valoracion['PrecioDirty']))
-col3=metric('Precio Base',str(value=valoracion['PrecioUltimoCupon']))
+col1.metric('Rendimiento',str(valoracion['Rendimiento']))
+col2.metric('Precio Dirty',str(value=valoracion['PrecioDirty']))
+col3.metric('Precio Base',str(value=valoracion['PrecioUltimoCupon']))
 """
 datos={'Rendimiento':irr,
                'TasaNominal':tasa_nominal,
