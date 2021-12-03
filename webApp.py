@@ -15,6 +15,7 @@ import json
 from Mercados import Bono
 from ImportData import *
 from datetime import datetime,timedelta,date
+import numpy as np
 
 st.set_page_config(
     page_title='Cotizacion_Bonos',
@@ -106,9 +107,10 @@ valoracion=bono.datosValor(rendimiento,fecha_cotizacion)
 
 col1, col2, col3 = st.columns(3)
 
-col1.metric('Rendimiento',str(valoracion['Rendimiento']))
-col2.metric('Precio Dirty',str(value=valoracion['PrecioDirty']))
-col3.metric('Precio Base',str(value=valoracion['PrecioUltimoCupon']))
+col1.metric('Rendimiento',str(np.around(valoracion['Rendimiento']*100,2))+'%')
+
+col2.metric('Precio Dirty',str(np.around(valoracion['PrecioDirty'],2)))
+col3.metric('Precio Base',str(np.around(valoracion['PrecioUltimoCupon'],2)))
 """
 datos={'Rendimiento':irr,
                'TasaNominal':tasa_nominal,
