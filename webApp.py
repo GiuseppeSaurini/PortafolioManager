@@ -45,10 +45,6 @@ isin = st.sidebar.selectbox(
 #importar flujo del instrumento seleccionado
 bono=Bono(isin,importData(isin,table='flujos').sort_values(by='fecha'))
 
-#Infomacion del instrumento seleccionado
-st.write('Datos del instrumento seleccionado')
-bono.info
-
 #Datos de cotizacion del Bono
 fecha_cotizacion=st.sidebar.date_input('Selecciones la fecha de valoracion:',
                                        value=date.today())
@@ -108,8 +104,21 @@ cantidad= st.sidebar.number_input('Cantidad a cotizar',value=0)
 st.write('Datos valoración')
 valoracion=bono.datosValor(rendimiento,fecha_cotizacion)
 
-#col1, col2, col3 = st.columns(3)
+col1, col2, col3 = st.columns(3)
 
+col1=metric(label='Rendimiento',value=valoracion['Rendimiento'])
+col2=metric(label='Precio Dirty',value=valoracion['PrecioDirty'])
+col3=metric(label='Precio Base',value=valoracion['PrecioUltimoCupon'])
+"""
+datos={'Rendimiento':irr,
+               'TasaNominal':tasa_nominal,
+               'PrecioDirty':pdirty,
+               'PrecioClean':pclean,
+               'PrecioUltimoCupon':pBase,
+               'InteresCorrido':interes_corrido/valorNominal*100,
+               'Duration':duration/365,
+               'Maduracion':maduracion/365}
+"""
 
 st.table(valoracion)
 
