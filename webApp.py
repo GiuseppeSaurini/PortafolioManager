@@ -47,7 +47,7 @@ bono=Bono(isin,importData(isin,table='flujos').sort_values(by='fecha'))
 
 #Infomacion del instrumento seleccionado
 st.write('Datos del instrumento seleccionado')
-st.table(bono.info)
+#st.table(bono.info)
 
 #Datos de cotizacion del Bono
 fecha_cotizacion=st.sidebar.date_input('Selecciones la fecha de valoracion:',
