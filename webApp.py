@@ -12,8 +12,8 @@ import streamlit as st
 import pandas as pd
 import requests
 import json
-from Mercados import Mercado
-from ImportData import importData
+from Mercados import Bono
+from ImportData import *
 from datetime import datetime,timedelta,date
 
 st.title('Valoración de Bono')
@@ -24,10 +24,9 @@ fecha=datetime.today()
 fecha_str=str(fecha.year)+'-'+str(fecha.month)+'-'+str(fecha.day)
 
 #Importar los instrumentos de MarketData
-emisiones = importData(table='instrumentos',fecha_base=fecha_str)
+emisiones = get_instrumentos(fecha_base=fecha_str)
 emisiones['fecha_vencimiento']=pd.to_datetime(emisiones['fecha_vencimiento'])
 emisiones=emisiones[~(emisiones['fecha_vencimiento'].isna())]
-
 
 #Select section
 isin = st.sidebar.selectbox(
@@ -35,9 +34,8 @@ isin = st.sidebar.selectbox(
                     emisiones.index.values
                     )
 
-flujos=importData(isin,'flujos').sort_values(by='fecha')
-
-bono=Mercado(flujos).getBond(isin) 
+#importar flujo del instrumento seleccionado
+bono=Bono(isin,importData(isin,table='flujos').sort_values(by='fecha'))
 
 #Infomacion del instrumento seleccionado
 st.write('Datos del instrumento seleccionado')
@@ -100,6 +98,9 @@ cantidad= st.sidebar.number_input('Cantidad a cotizar',value=0)
 #Tabla de Valoracion del Bono
 st.write('Datos valoración')
 valoracion=bono.datosValor(rendimiento,fecha_cotizacion)
+
+#col1, col2, col3 = st.columns(3)
+
 
 st.table(valoracion)
 
