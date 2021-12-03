@@ -16,6 +16,14 @@ from Mercados import Bono
 from ImportData import *
 from datetime import datetime,timedelta,date
 
+st.set_page_config(
+    page_title='Cotizacion_Bonos',
+    page_icon='chart_with_upwards_trend',
+    layout='wide',
+    initial_sidebar_state='auto',
+    #menu_items=None
+    )
+
 st.title('Valoración de Bono')
 
 #Definision de instrumentos
@@ -44,6 +52,7 @@ st.table(bono.info)
 #Datos de cotizacion del Bono
 fecha_cotizacion=st.sidebar.date_input('Selecciones la fecha de valoracion:',
                                        value=date.today())
+
 
 fecha_cotizacion=pd.to_datetime(fecha_cotizacion)
 
@@ -103,6 +112,7 @@ valoracion=bono.datosValor(rendimiento,fecha_cotizacion)
 
 
 st.table(valoracion)
+
 
 volumen_Cotizacion=price/100*bono.info['ValorNominal']*cantidad
 
