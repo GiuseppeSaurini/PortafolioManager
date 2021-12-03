@@ -111,7 +111,6 @@ col1.metric('Rendimiento',str(np.around(valoracion['Rendimiento']*100,2))+'%')
 col2.metric('Precio Dirty',str(np.around(valoracion['PrecioDirty'],2)))
 col3.metric('Precio Base',str(np.around(valoracion['PrecioUltimoCupon'],2)))
 
-bono.info
 
 volumen_Cotizacion=price/100*bono.info['ValorNominal']*cantidad
 
