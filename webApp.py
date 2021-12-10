@@ -2,7 +2,7 @@
 """
 Created on Wed Jun  9 15:21:10 2021
 
-@author: DELL
+@author: DELL_Giuseppe
 """
 
 
@@ -45,6 +45,8 @@ isin = st.sidebar.selectbox(
 
 #importar flujo del instrumento seleccionado
 bono=Bono(isin,importData(isin,table='flujos').sort_values(by='fecha'))
+
+st.table(bono.info)
 
 #Datos de cotizacion del Bono
 fecha_cotizacion=st.sidebar.date_input('Selecciones la fecha de valoracion:',
@@ -105,13 +107,15 @@ cantidad= st.sidebar.number_input('Cantidad a cotizar',value=0)
 st.write('Datos valoración')
 valoracion=bono.datosValor(rendimiento,fecha_cotizacion)
 
-col1, col2, col3 = st.columns(3)
+
+col1, col2, col3, col4 = st.columns(4)
 
 col1.metric('Rendimiento',str(np.around(valoracion['Rendimiento']*100,2))+'%')
-col2.metric('Precio Dirty',str(np.around(valoracion['PrecioDirty'],2)))
-col3.metric('Precio Base',str(np.around(valoracion['PrecioUltimoCupon'],2)))
+col2.metric('Precio Dirty',str(np.around(valoracion['PrecioDirty'],4)))
+col3.metric('Precio Clean',str(np.around(valoracion['PrecioClean'],4)))
+col4.metric('Precio Base',str(np.around(valoracion['PrecioUltimoCupon'],4)))
 
 
 volumen_Cotizacion=price/100*bono.info['ValorNominal']*cantidad
 
-volumen_Cotizacion
+st.metric('Volumen Cotizado',np.around(volumen_Cotizacion,0))
