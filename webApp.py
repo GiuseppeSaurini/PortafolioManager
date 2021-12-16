@@ -46,7 +46,6 @@ isin = st.sidebar.selectbox(
 #importar flujo del instrumento seleccionado
 bono=Bono(isin,importData(isin,table='flujos').sort_values(by='fecha'))
 
-bono.info
 
 #Datos de cotizacion del Bono
 fecha_cotizacion=st.sidebar.date_input('Selecciones la fecha de valoracion:',
@@ -107,13 +106,30 @@ cantidad= st.sidebar.number_input('Cantidad a cotizar',value=0)
 st.write('Datos valoración')
 valoracion=bono.datosValor(rendimiento,fecha_cotizacion)
 
-
 col1, col2, col3, col4 = st.columns(4)
 
-col1.metric('Rendimiento',str(np.around(valoracion['Rendimiento']*100,2))+'%')
-col2.metric('Precio Dirty',str(np.around(valoracion['PrecioDirty'],4)))
-col3.metric('Precio Clean',str(np.around(valoracion['PrecioClean'],4)))
-col4.metric('Precio Base',str(np.around(valoracion['PrecioUltimoCupon'],4)))
+
+# 'simbolo':self.isin[2:5],
+# 'Emisor':flujo['emisor/nombre'].values[0],
+# 'Tipo_Instrumento':flujo['tipo_instrumento'].values[0],
+# 'Moneda':flujo['moneda'].values[0],
+# 'Fecha_Emision':flujo['fecha_colocacion'].values[0],
+# 'Fecha_Vencimiento':self.flujo['fecha'].max(),
+# 'ValorNominal':self.flujo['amortizacion'].sum(),
+# 'TasaCupon':flujo['tasa_interes'].values[0]
+
+col1.metric('Emisor',bono.info['Emisor'])
+col2.metric('Instrumento',bono.info['Tipo_Instrumento'])
+col3.metric('Moneda',bono.info['Moneda'])
+col4.metric('Tasa Cupon',str(np.around(bono.info['TasaCupon']*100,2))+'%')
+
+
+col5, col6, col7, col8 = st.columns(4)
+
+col5.metric('Rendimiento',str(np.around(valoracion['Rendimiento']*100,2))+'%')
+col6.metric('Precio Dirty',str(np.around(valoracion['PrecioDirty'],4)))
+col7.metric('Precio Clean',str(np.around(valoracion['PrecioClean'],4)))
+col8.metric('Precio Base',str(np.around(valoracion['PrecioUltimoCupon'],4)))
 
 
 volumen_Cotizacion=price/100*bono.info['ValorNominal']*cantidad
