@@ -106,9 +106,13 @@ cantidad= st.sidebar.number_input('Cantidad a cotizar',value=0)
 st.write('Datos valoración')
 valoracion=bono.datosValor(rendimiento,fecha_cotizacion)
 
-col1, col2, col3, col4 = st.columns(4)
+st.metric('Emisor',bono.info['Emisor'])
 
-
+if(bono.info['Moneda']=='pyg'):
+    moneda='Guaraníes'
+else:
+    moneda='Dolares'
+col2, col3, col4 = st.columns(3)
 # 'simbolo':self.isin[2:5],
 # 'Emisor':flujo['emisor/nombre'].values[0],
 # 'Tipo_Instrumento':flujo['tipo_instrumento'].values[0],
@@ -118,11 +122,9 @@ col1, col2, col3, col4 = st.columns(4)
 # 'ValorNominal':self.flujo['amortizacion'].sum(),
 # 'TasaCupon':flujo['tasa_interes'].values[0]
 
-col1.metric('Emisor',bono.info['Emisor'])
 col2.metric('Instrumento',bono.info['Tipo_Instrumento'])
-col3.metric('Moneda',bono.info['Moneda'])
+col3.metric('Moneda',moneda)
 col4.metric('Tasa Cupon',str(np.around(bono.info['TasaCupon']*100,2))+'%')
-
 
 col5, col6, col7, col8 = st.columns(4)
 
