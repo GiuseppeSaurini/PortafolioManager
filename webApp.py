@@ -46,7 +46,7 @@ isin = st.sidebar.selectbox(
 #importar flujo del instrumento seleccionado
 bono=Bono(isin,importData(isin,table='flujos').sort_values(by='fecha'))
 
-st.table(bono.info)
+bono.info
 
 #Datos de cotizacion del Bono
 fecha_cotizacion=st.sidebar.date_input('Selecciones la fecha de valoracion:',
