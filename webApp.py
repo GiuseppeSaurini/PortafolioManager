@@ -84,7 +84,6 @@ elif(metodo_cotizacion=='Precio Clean'):
     
     rendimiento=bono.rendimiento(fecha_cotizacion,valor)
     
-    #precio=valor/bono.info['ValorNominal']*100
 
 elif(metodo_cotizacion=='Precio Base'):
     price= st.sidebar.text_input('Precio Base:',value='100.00')
@@ -92,11 +91,13 @@ elif(metodo_cotizacion=='Precio Base'):
     
     dias_Corridos=bono.diasCorridos(fecha_cotizacion)
     
+    nueva_fecha_cotizacion=fecha_cotizacion-timedelta(days=dias_Corridos)
+    
     valor=price/100*bono.info['ValorNominal']
     
-    rendimiento=bono.rendimiento(fecha_cotizacion,valor)
+    rendimiento=bono.rendimiento(nueva_fecha_cotizacion,valor)
     
-    #price=(valor/(1+rendimiento)**(dias_Corridos/365))/bono.info['ValorNominal']*100
+    valor=valor*((1+rendimiento)**(dias_Corridos/365))
 
 elif(metodo_cotizacion=='Rendimimiento(TIR)'):
     price=st.sidebar.text_input('Rendimimiento',value='0.100')
@@ -105,7 +106,6 @@ elif(metodo_cotizacion=='Rendimimiento(TIR)'):
     
     valor=bono.valorActual(rendimiento,fecha_cotizacion)
     
-    #price=valor/bono.info['ValorNominal']*100
 
 #Igresa la cantidad de Bonos a ser Cotizados
 cantidad= st.sidebar.number_input('Cantidad a cotizar',value=0)
