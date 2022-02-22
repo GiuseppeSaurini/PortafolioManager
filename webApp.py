@@ -67,7 +67,7 @@ if(metodo_cotizacion=='Precio Dirty'):
     price= st.sidebar.text_input('Precio Dirty:',value='100.00')
     price=pd.to_numeric(price)
 
-    valor=(price)/100*bono.info['ValorNominal']
+    valor=price/100*bono.info['ValorNominal']
 
     rendimiento=bono.rendimiento(fecha_cotizacion,valor)
     
@@ -84,28 +84,28 @@ elif(metodo_cotizacion=='Precio Clean'):
     
     rendimiento=bono.rendimiento(fecha_cotizacion,valor)
     
-    precio=valor/bono.info['ValorNominal']*100
+    #precio=valor/bono.info['ValorNominal']*100
 
 elif(metodo_cotizacion=='Precio Base'):
-    price_base= st.sidebar.text_input('Precio Base:',value='100.00')
-    price_base=pd.to_numeric(price_base)
+    price= st.sidebar.text_input('Precio Base:',value='100.00')
+    price=pd.to_numeric(price)
     
     dias_Corridos=bono.diasCorridos(fecha_cotizacion)
     
-    nueva_fecha_cotizacion=fecha_cotizacion-timedelta(days=dias_Corridos)
+    valor=price/100*bono.info['ValorNominal']
     
-    valor=price_base/100*bono.info['ValorNominal']
+    rendimiento=bono.rendimiento(fecha_cotizacion,valor)
     
-    rendimiento=bono.rendimiento(nueva_fecha_cotizacion,valor)
-    
-    price=(valor/(1+rendimiento)**(dias_Corridos/365))/bono.info['ValorNominal']*100
+    #price=(valor/(1+rendimiento)**(dias_Corridos/365))/bono.info['ValorNominal']*100
 
 elif(metodo_cotizacion=='Rendimimiento(TIR)'):
     price=st.sidebar.text_input('Rendimimiento',value='0.100')
     price=pd.to_numeric(price)
     rendimiento=price
     
-    price=bono.valorActual(rendimiento,fecha_cotizacion)/bono.info['ValorNominal']*100
+    valor=bono.valorActual(rendimiento,fecha_cotizacion)
+    
+    #price=valor/bono.info['ValorNominal']*100
 
 #Igresa la cantidad de Bonos a ser Cotizados
 cantidad= st.sidebar.number_input('Cantidad a cotizar',value=0)
@@ -142,6 +142,6 @@ col7.metric('Precio Clean',str(np.around(valoracion['Precio Clean'],4)))
 col8.metric('Precio Base',str(np.around(valoracion['Precio Base'],4)))
 
 
-volumen_Cotizacion=price/100*bono.info['ValorNominal']*cantidad
+volumen_Cotizacion=valor*cantidad
 
 st.metric('Volumen Cotizado',np.around(volumen_Cotizacion,0))
