@@ -13,7 +13,7 @@ import pandas as pd
 import requests
 import json
 from Mercados import Bono
-from ImportData import *
+from MarketData import MarketDataAPI as md
 from datetime import datetime,timedelta,date
 import numpy as np
 
@@ -33,7 +33,7 @@ fecha=datetime.today()
 fecha_str=str(fecha.year)+'-'+str(fecha.month)+'-'+str(fecha.day)
 
 #Importar los instrumentos de MarketData
-emisiones = get_instrumentos(fecha_base=fecha_str)
+emisiones = md.get_instrumentos(fecha_base=fecha_str)
 emisiones['fecha_vencimiento']=pd.to_datetime(emisiones['fecha_vencimiento'])
 emisiones=emisiones[~(emisiones['fecha_vencimiento'].isna())]
 
@@ -44,7 +44,7 @@ isin = st.sidebar.selectbox(
                     )
 
 #importar flujo del instrumento seleccionado
-bono=Bono(isin,importData(isin,table='flujos').sort_values(by='fecha'))
+bono=Bono(isin,md.importData(isin,table='flujos').sort_values(by='fecha'))
 
 
 #Datos de cotizacion del Bono
@@ -70,6 +70,7 @@ if(metodo_cotizacion=='Precio Dirty'):
     valor=(price)/100*bono.info['ValorNominal']
 
     rendimiento=bono.rendimiento(fecha_cotizacion,valor)
+    
 
 elif(metodo_cotizacion=='Precio Clean'):
     price= st.sidebar.text_input('Precio Clean:',value='100.00')
@@ -82,15 +83,22 @@ elif(metodo_cotizacion=='Precio Clean'):
     valor=(price+interesCorrido)/100*bono.info['ValorNominal']
     
     rendimiento=bono.rendimiento(fecha_cotizacion,valor)
+    
+    precio=valor/bono.info['ValorNominal']*100
 
 elif(metodo_cotizacion=='Precio Base'):
     price_base= st.sidebar.text_input('Precio Base:',value='100.00')
     price_base=pd.to_numeric(price_base)
+    
     dias_Corridos=bono.diasCorridos(fecha_cotizacion)
+    
     nueva_fecha_cotizacion=fecha_cotizacion-timedelta(days=dias_Corridos)
+    
     valor=price_base/100*bono.info['ValorNominal']
     
     rendimiento=bono.rendimiento(nueva_fecha_cotizacion,valor)
+    
+    price=(valor/(1+rendimiento)**(dias_Corridos/365))/bono.info['ValorNominal']*100
 
 elif(metodo_cotizacion=='Rendimimiento(TIR)'):
     price=st.sidebar.text_input('Rendimimiento',value='0.100')
