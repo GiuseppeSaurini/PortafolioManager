@@ -137,9 +137,9 @@ col4.metric('Tasa Cupon',str(np.around(bono.info['TasaCupon']*100,2))+'%')
 col5, col6, col7, col8 = st.columns(4)
 
 col5.metric('Rendimiento',str(np.around(valoracion['Rendimiento']*100,2))+'%')
-col6.metric('Precio Dirty',str(np.around(valoracion['PrecioDirty'],4)))
-col7.metric('Precio Clean',str(np.around(valoracion['PrecioClean'],4)))
-col8.metric('Precio Base',str(np.around(valoracion['PrecioUltimoCupon'],4)))
+col6.metric('Precio Dirty',str(np.around(valoracion['Precio Dirty'],4)))
+col7.metric('Precio Clean',str(np.around(valoracion['Precio Clean'],4)))
+col8.metric('Precio Base',str(np.around(valoracion['Precio Base'],4)))
 
 
 volumen_Cotizacion=price/100*bono.info['ValorNominal']*cantidad
