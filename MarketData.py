@@ -44,6 +44,8 @@ class MarketDataAPI():
         df['fecha_vencimiento']=pd.to_datetime(df['fecha_vencimiento'])
         df['valor_nominal']=pd.to_numeric(df['valor_nominal'])
         
+        #transformar a valor numerico [monto_serie,
+        
         return df
         
     def importData(isin='',table='instrumentos/list',fecha_base=''):
