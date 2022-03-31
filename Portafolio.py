@@ -34,25 +34,21 @@ class Portafolio:
     def __init__(self,denominacion='',stock=[]):
         #bono identificacion
         self.name=denominacion
-        self.operaciones=pd.DataFrame(columns=['operacion','isin',
-                                              'fecha','valorUnitario',
-                                              'cantidad','ValorOperacion',
-                                               'TirOperacion'])
+        self.operaciones=pd.DataFrame()
        
-    def operacion(self,tipo_op,mercado,isin,fechaOp,valorUnitario,cantidad):
+    def operacion(self,tipo_op,instrumento,fechaOp,valorUnitario,cantidad):
         
-        
-        tirOp=mercado.getBond(isin).rendimiento(fechaOp,valorUnitario)
-
+        tirOp=instrumento.rendimiento(fechaOp,valorUnitario)
+       
         self.operaciones=self.operaciones.append({'operacion':tipo_op,
-                                                        'isin':isin,
-                                                     'fecha':fechaOp,
-                                                     'valorUnitario':valorUnitario,
-                                                     'cantidad':cantidad,
-                                                     'TirOperacion':tirOp,
-                                                      'ValorOperacion':valorUnitario*cantidad,
-                                                      'bono':mercado.getBond(isin)
-                                                     },ignore_index=True)
+                                                  'isin':instrumento.isin,
+                                                  'fecha':fechaOp,
+                                                  'valorUnitario':valorUnitario,
+                                                  'cantidad':cantidad,
+                                                  'TirOperacion':tirOp,
+                                                  'ValorOperacion':valorUnitario*cantidad,
+                                                  'bono':instrumento
+                                                  },ignore_index=True)
         
     def stockPortafolio(self,fechaValor):
         #Definir columnas df
@@ -100,22 +96,23 @@ class Portafolio:
         return npv
     
     def flujoPortafolio(self,fecha_inicial,fecha_final):
-        
+        #Cambiar fecha_inicio en caso de que la sea antes de la primera operacion
         if(fecha_inicial<self.operaciones['fecha'].min()):
             fecha_inicial=self.operaciones['fecha'].min()
         
         
         fecha_final=fecha_final
         
+        #Opciones de instruccion de operacion
         wordsCompra=['compra','Compra','COMPRA']
         wordsVenta=['venta','Venta','VENTA']
 
         #Creacion del Dataframe
-        flujoPort=pd.DataFrame(columns=['fecha','isin','concepto','pago'])
+        flujo_portafolio=pd.DataFrame(columns=['fecha','isin','concepto','pago'])
 
         #Carga de los bonos en stock a la fecha de inicio y sus flujos
         for item in self.stockPortafolio(fecha_inicial).itertuples():
-            flujoPort=flujoPort.append({'fecha':fecha_inicial,
+            flujo_portafolio=flujo_portafolio.append({'fecha':fecha_inicial,
                                         'isin':item.isin,
                                         'concepto':'valor inicial',
                                        'pago':-item.ValorBono
@@ -123,69 +120,60 @@ class Portafolio:
                                        ,ignore_index=True)
             
             for f in item.bono.flujoVigente(fecha_inicial,fecha_final).itertuples():
-                flujoPort=flujoPort.append({'fecha':f.fecha,
+                flujo_portafolio=flujo_portafolio.append({'fecha':f.fecha,
                                             'isin':item.isin,
                                             'concepto':'interes',
                                             'pago':f.interes*item.cantidad}
                                            ,ignore_index=True)
-                
-                flujoPort=flujoPort.append({'fecha':f.fecha,
-                                            'isin':item.isin,
-                                            'concepto':'capital',
-                                            'pago':f.amortizacion*item.cantidad}
-                                           ,ignore_index=True)
-
-        #Cargar las operaciones de compra y de venta durante el periodo y sus flujos
-        for item in self.operaciones[(self.operaciones['fecha']>fecha_inicial)&(self.operaciones['fecha']<fecha_final)].itertuples():
-            if(item.operacion in wordsCompra):
-                #Cargar la operacion de compra del bono agregando en negativo valor de la operacion
-                flujoPort=flujoPort.append({'fecha':item.fecha,
-                                            'isin':item.isin,
-                                            'concepto':'compra',
-                                           'pago':-item.ValorOperacion}
-                                           ,ignore_index=True)
-                #cargar los flujos del bono comprado, por su cantidad, hasta fecha estipulada final
-                for f in item.bono.flujoVigente(item.fecha,fecha_final).itertuples():
-                    flujoPort=flujoPort.append({'fecha':f.fecha,
-                                                'isin':item.isin,
-                                                'concepto':'interes',
-                                                'pago':f.interes*item.cantidad}
-                                               ,ignore_index=True)
-                    flujoPort=flujoPort.append({'fecha':f.fecha,
+                if(f.amortizacion>0):
+                    flujo_portafolio=flujo_portafolio.append({'fecha':f.fecha,
                                                 'isin':item.isin,
                                                 'concepto':'capital',
                                                 'pago':f.amortizacion*item.cantidad}
                                                ,ignore_index=True)
+                else:
+                    pass
+
+        #Cargar las operaciones de compra y de venta durante el periodo y sus flujos
+        for item in self.operaciones[(self.operaciones['fecha']>fecha_inicial)&(self.operaciones['fecha']<fecha_final)].itertuples():
+            if(item.operacion in wordsCompra):
+                input_output=-1
             #Cargar operaciones de venta
             elif(item.operacion in wordsVenta):
-                #Sumar al flujo el valor de la operacion
-                flujoPort=flujoPort.append({'fecha':item.fecha,
+                input_output=1    
+            else:
+                print('Error: no existe el concepto: ',item.operacion)
+                pass
+            
+            #Sumar al flujo el valor de la operacion
+            flujo_portafolio=flujo_portafolio.append({'fecha':item.fecha,
+                                        'isin':item.isin,
+                                        'concepto':item.operacion,
+                                       'pago':item.ValorOperacion*input_output}
+                                       ,ignore_index=True)
+            #Restar los flujos restante del bono por la cantidad vendida
+            for f in item.bono.flujoVigente(item.fecha,fecha_final).itertuples():
+                flujo_portafolio=flujo_portafolio.append({'fecha':f.fecha,
                                             'isin':item.isin,
-                                            'concepto':'venta',
-                                           'pago':item.ValorOperacion}
+                                            'concepto':'interes',
+                                            'pago':f.interes*item.cantidad*input_output*-1}
                                            ,ignore_index=True)
-                #Restar los flujos restante del bono por la cantidad vendida
-                for f in item.bono.flujoVigente(item.fecha,fecha_final).itertuples():
-                    flujoPort=flujoPort.append({'fecha':f.fecha,
-                                                'isin':item.isin,
-                                                'concepto':'interes',
-                                                'pago':-f.interes*item.cantidad}
-                                               ,ignore_index=True)
-                    flujoPort=flujoPort.append({'fecha':f.fecha,
+                if(f.amortizacion>0):
+                    flujo_portafolio=flujo_portafolio.append({'fecha':f.fecha,
                                                 'isin':item.isin,
                                                 'concepto':'capital',
-                                                'pago':-f.amortizacion*item.cantidad}
+                                                'pago':f.amortizacion*item.cantidad*input_output*-1}
                                                ,ignore_index=True)
         #Agragar valor final de cada bono final
         for item in self.stockPortafolio(fecha_final).itertuples():
-            flujoPort=flujoPort.append({'fecha':fecha_final,
+            flujo_portafolio=flujo_portafolio.append({'fecha':fecha_final,
                                         'isin':item.isin,
                                         'concepto':'valor final',
                                        'pago':item.ValorBono}
                                        ,ignore_index=True)
             
         #Devolver el DataFrame ordenado por fecha
-        return flujoPort.sort_values(by='fecha')
+        return flujo_portafolio.sort_values(by='fecha')
 
     def historyValue(self,fecha_inicial,fecha_final,frequency='D'):
         
@@ -193,49 +181,44 @@ class Portafolio:
         if(fecha_inicial<self.operaciones['fecha'].min()):
             fecha_inicial=self.operaciones['fecha'].min()
         
+        
         #Carga de flujo del protafolio
-        f=self.flujoPortafolio(fecha_inicial,fecha_final)
-        
-        #Establecer las fechas de valoracion
-        dates=pd.Series(pd.date_range(fecha_inicial,fecha_final,freq=frequency).values)
-        
-        #if(f[~(f['fecha'].isin(dates))].shape[0]>0):
-        
-        #Definir fecha de flujo
-        d=pd.Series(f[~(f['fecha'].isin(dates))].pivot_table(index='fecha').index)
-        
-        #Cargar fechas de flujo en caso que falten fechas especificas de flujo
-        dates=dates.append(d,ignore_index=True)
+        flujo=self.flujoPortafolio(fecha_inicial,fecha_final)
         
         
-        hist=pd.DataFrame(index=dates.sort_values().values)
+        #Establecer las fechas de valoracion historica
+        history=pd.DataFrame({'fecha':pd.date_range(fecha_inicial,fecha_final,freq=frequency).values})
         
-        #Valoracion inicial de portafolio
-        startValue=self.valorPortafolio(fecha_inicial)
+        #Determinar las fehcas del flujo de pago
+        fecha_flujo=pd.DataFrame({'fecha':flujo[~(flujo['fecha'].isin(history.fecha))]['fecha'].unique()})
+        #Cargar todas las fechas
+        history=history.append(fecha_flujo,ignore_index=True)
+        #Ordenar fechas    
+        history=history.sort_values(by='fecha')
         
+        #Determinar valor inicial
+        valor_portafolio_anterior=self.valorPortafolio(fecha_inicial)
         valorAcumulado=1
         #fecha=fecha_inicial
         word=['valor inicial','valor final']
         
-        for row in hist.itertuples():
-            #Valor inicial del portafolio
-            hist.loc[row.Index,'valorPrtafolio']=self.valorPortafolio(row.Index)
-                        
-            hist.loc[row.Index,'flujo']=(f[~(f['concepto'].isin(word))&(f['fecha']==row.Index)]['pago'].sum())
-            
-            #hist.loc[row.Index,'flujo']=-(f[~(f['concepto'].isin(word))&(f['fecha']<=row.Index)&(f['fecha']>fecha)]['pago'].sum())
-            #hist.loc[row.Index,'dias']=((row.Index-fecha_inicial)/timedelta(days=1))
-            hist.loc[row.Index,'growth']=(hist.loc[row.Index,'valorPrtafolio']+hist.loc[row.Index,'flujo'])/startValue-1
-            
-            #hist.loc[row.Index,'timeWeightedRetunr']=(hist.loc[row.Index,'growth']**(365/hist.loc[row.Index,'dias']))-1
-            #hist.loc[row.Index,'anualRetunr']=(hist.loc[row.Index,'growth']-1)*(365/hist.loc[row.Index,'dias'])
-            
-            hist.loc[row.Index,'growthValue']=valorAcumulado*(1+hist.loc[row.Index,'growth'])
-            
-            valorAcumulado=hist.loc[row.Index,'growthValue']
-            
-            startValue=hist.loc[row.Index,'valorPrtafolio']
-            #fecha=row.Index
-        return hist
+        for row in history.itertuples():
+            valor_portafolio=self.valorPortafolio(row.fecha)
+            if(valor_portafolio>0):
+                #Valor inicial del portafolio
+                history.loc[row.Index,'valorPrtafolio']=valor_portafolio
+                            
+                history.loc[row.Index,'flujo']=(flujo[~(flujo['concepto'].isin(word))&(flujo['fecha']==row.fecha)]['pago'].sum())
+                
+                history.loc[row.Index,'growth']=(history.loc[row.Index,'valorPrtafolio']+history.loc[row.Index,'flujo'])/valor_portafolio_anterior-1
+                
+                history.loc[row.Index,'growthValue']=valorAcumulado*(1+history.loc[row.Index,'growth'])
+                
+                valorAcumulado=history.loc[row.Index,'growthValue']
+                
+                valor_portafolio_anterior=valor_portafolio
+            else:
+                return history
+        return history
     
 
