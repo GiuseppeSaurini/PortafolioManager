@@ -2,7 +2,7 @@
 """
 Created on Fri May  7 11:32:00 2021
 
-@author: Investor
+@author: Giuseppe
 """
 
 
@@ -10,28 +10,28 @@ Created on Fri May  7 11:32:00 2021
 import pandas as pd 
 from datetime import datetime#, timedelta
 from Mercados import Mercado
-from ImportData import importData
+from MarketData import MarketDataAPI as md
 #import icecream as ic
 
 
+
 if __name__ == "__main__":
-    # flujos = pd.read_excel('G:/Mi unidad/MARKET DATA/BaseDatos/Flujos.xlsx',index_col=0) 
-    # operaciones = pd.read_excel('G:/Mi unidad/MARKET DATA/BaseDatos/operaciones.xlsx',index_col=0)
-    # emisiones = pd.read_excel('G:/Mi unidad/MARKET DATA/BaseDatos/emisiones.xlsx',index_col=0)
-    # emisores = pd.read_excel('G:/Mi unidad/MARKET DATA/BaseDatos/Emisores.xlsx')
-    isin_bono='PYNUC05F1356'
-    api_operaciones=importData(isin_bono,'operaciones')
-    api_flujos=importData(isin_bono,'flujos')
-        
-    mercado=Mercado(api_flujos,api_operaciones)
     
+    isin_bono='PYMUV01F8148'
+    #api_operaciones=importData(isin_bono,'operaciones')
+    api_flujos=md.importData(isin_bono,'flujos')
+    api_insturmento=md.importData(isin_bono)
+        
+    #mercado=Mercado(api_flujos,api_operaciones)
+    mercado=Mercado(api_flujos)
     bono=mercado.getBond(isin_bono)
       
-    bono_history=mercado.history_pClean(isin_bono)
+    #bono_history=mercado.history_pClean(isin_bono)
     
     
-    bono_history.plot(x='date',y='precio_clean')
+    #bono_history.plot(x='date',y='precio_clean')
     
+    valor=bono.datosValor(0.060,datetime(2021,10,29))
     
     
     
