@@ -121,14 +121,7 @@ if(bono.info['Moneda']=='pyg'):
 else:
     moneda='Dolares'
 col2, col3, col4 = st.columns(3)
-# 'simbolo':self.isin[2:5],
-# 'Emisor':flujo['emisor/nombre'].values[0],
-# 'Tipo_Instrumento':flujo['tipo_instrumento'].values[0],
-# 'Moneda':flujo['moneda'].values[0],
-# 'Fecha_Emision':flujo['fecha_colocacion'].values[0],
-# 'Fecha_Vencimiento':self.flujo['fecha'].max(),
-# 'ValorNominal':self.flujo['amortizacion'].sum(),
-# 'TasaCupon':flujo['tasa_interes'].values[0]
+
 
 col2.metric('Instrumento',bono.info['Tipo_Instrumento'])
 col3.metric('Moneda',moneda)
