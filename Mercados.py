@@ -172,27 +172,26 @@ class Bono:
                            self.info['Fecha_Vencimiento']==flujo['fecha'].max()
                            else flujo['fecha'].max())
         
-        maduracion=int((fecha_vencimiento-fechaValor)/timedelta(days=1))
-        
         #Dias desde el ultimo pago cupon
         if(tasaCupon>0):
             dias_corridos=self.diasCorridos(fechaValor)
             interes_corrido=tasaCupon/365*dias_corridos*valorNominal
         else:
             interes_corrido=0
-            
+
+        #Maduracion y Duration del instrumento
+        maduracion=int((fecha_vencimiento-fechaValor)/timedelta(days=1))
+        duration=self.duration(irr,fechaValor)
+        
         #Tasa nominal
         tasa_nominal=(flujo['pago'].sum()/valorActualNeto-1)*(365/maduracion)
-
-        #Duration de la operacion
-        duration=self.duration(irr,fechaValor)
         
         #Precios
         pdirty=valorActualNeto/valorNominal*100
         pclean=(valorActualNeto-interes_corrido)/valorNominal*100
         pBase=(valorActualNeto/((1+irr)**(dias_corridos/365)))/valorNominal*100
         
-            
+        #Carga de datos  
         datos={'Rendimiento':irr,
                'Tasa Nominal':tasa_nominal,
                'Precio Dirty':pdirty,
