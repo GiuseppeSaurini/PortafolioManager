@@ -161,18 +161,18 @@ class Bono:
         valorActualNeto=self.valorActual(irr,fechaValor)
         #flujo de pago futuro desde fechaValor
         flujo=self.flujoVigente(fechaValor)
-        
         #Valor nominal unitario
-        if(self.info['ValorNominal']==0):
-            valorNominal=(1000000 if self.info['Moneda']=='pyg' else 1000)
-        else:
-            valorNominal=self.info['ValorNominal']
-            
+        valorNominal=flujo['amortizacion'].sum()
+              
         #Tasa cupon
         tasaCupon=self.info['TasaCupon']
         
         #Periodo de vencimiento o maduracion del instrumento
-        maduracion=int((self.info['Fecha_Vencimiento']-fechaValor)/timedelta(days=1))
+        fecha_vencimiento=(self.info['Fecha_Vencimiento'] if 
+                           self.info['Fecha_Vencimiento']==flujo['fecha'].max()
+                           else flujo['fecha'].max())
+        
+        maduracion=int((fecha_vencimiento-fechaValor)/timedelta(days=1))
         
         #Dias desde el ultimo pago cupon
         if(tasaCupon>0):
