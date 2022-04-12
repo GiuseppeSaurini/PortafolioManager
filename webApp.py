@@ -62,12 +62,15 @@ metodo_cotizacion=st.sidebar.selectbox(
                                         'Precio Base',
                                         'Rendimimiento(TIR)']
                                     )
+valor_nominal=bono.flujoVigente(fecha_cotizacion)['amortizacion'].sum()
+
+dias_Corridos=bono.diasCorridos(fecha_cotizacion)
 
 if(metodo_cotizacion=='Precio Dirty'):
     price= st.sidebar.text_input('Precio Dirty:',value='100.00')
     price=pd.to_numeric(price)
 
-    valor=price/100*bono.info['ValorNominal']
+    valor=price/100*valor_nominal
 
     rendimiento=bono.rendimiento(fecha_cotizacion,valor)
     
@@ -76,11 +79,9 @@ elif(metodo_cotizacion=='Precio Clean'):
     price= st.sidebar.text_input('Precio Clean:',value='100.00')
     price=pd.to_numeric(price)
     
-    dias_Corridos=bono.diasCorridos(fecha_cotizacion)
-    
     interesCorrido=bono.info['TasaCupon']/365*dias_Corridos*100
     
-    valor=(price+interesCorrido)/100*bono.info['ValorNominal']
+    valor=(price+interesCorrido)/100*valor_nominal
     
     rendimiento=bono.rendimiento(fecha_cotizacion,valor)
     
@@ -89,11 +90,9 @@ elif(metodo_cotizacion=='Precio Base'):
     price= st.sidebar.text_input('Precio Base:',value='100.00')
     price=pd.to_numeric(price)
     
-    dias_Corridos=bono.diasCorridos(fecha_cotizacion)
-    
     nueva_fecha_cotizacion=fecha_cotizacion-timedelta(days=dias_Corridos)
     
-    valor=price/100*bono.info['ValorNominal']
+    valor=price/100*valor_nominal
     
     rendimiento=bono.rendimiento(nueva_fecha_cotizacion,valor)
     
