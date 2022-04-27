@@ -144,7 +144,7 @@ class MarketDataAPI():
         
         return df
     
-    def get_operaciones(isin='',fecha_base=''):
+    def get_operaciones(isin='',fecha_base='2021-1-1'):
         #API Datawharehousing url y contraseña
         
         url_DWH='https://data.marketdata.com.py/api/v1/'
@@ -154,9 +154,18 @@ class MarketDataAPI():
         query=url_DWH+'operasiones'+key
         
         #Filtrar por isin    
-        query=query+'&isin='+isin    
+        query=query+'&isin='+isin
         
-        pass
+        query=query+'&fecha_operacion_from='+fecha_base
+        
+        #importar los datos
+        data=json.loads(requests.get(query).text)
+        df=pd.json_normalize(data,sep='/')
+        
+        #eliminar datos None
+        df=df.replace('None','')
+        
+        return df
     
     def get_flujos(isin=''):
         #API Datawharehousing url y contraseña
