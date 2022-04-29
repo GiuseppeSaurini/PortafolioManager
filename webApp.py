@@ -119,21 +119,19 @@ if(bono.info['Moneda']=='pyg'):
     moneda='Guaraníes'
 else:
     moneda='Dolares'
-col2, col3, col4 = st.columns(3)
 
+#Estructura de resultados
+col2, col3, col4 = st.columns(3)
+col5, col6, col7, col8 = st.columns(4)
 
 col2.metric('Instrumento',bono.info['Tipo_Instrumento'])
 col3.metric('Moneda',moneda)
 col4.metric('Tasa Cupon',str(np.around(bono.info['TasaCupon']*100,2))+'%')
-
-col5, col6, col7, col8 = st.columns(4)
-
 col5.metric('Rendimiento',str(np.around(valoracion['Rendimiento']*100,2))+'%')
 col6.metric('Precio Dirty',str(np.around(valoracion['Precio Dirty'],4)))
 col7.metric('Precio Clean',str(np.around(valoracion['Precio Clean'],4)))
 col8.metric('Precio Base',str(np.around(valoracion['Precio Base'],4)))
 
+volumen_Cotizacion=np.around(valoracion['Precio Dirty'],4)/100*valor_nominal*cantidad
 
-volumen_Cotizacion=valor*cantidad
-
-st.metric('Volumen Cotizado',np.around(volumen_Cotizacion,0))
+st.metric('Volumen Cotizado',volumen_Cotizacion)
