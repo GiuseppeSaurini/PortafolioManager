@@ -33,7 +33,8 @@ def npv(irr, cfs, dias,va=0):
 
 #Funcion que define la tasa en la que NPV es 0
 def irr(cashFlow,time,va):
-    return np.asscalar(fsolve(npv,0, args=(cashFlow,time,va)))
+    tasa=fsolve(npv,0, args=(cashFlow,time,va))
+    return tasa.item()
 
 #Define la ecuacion logaritmica (valores a y b) tomando en cuenta los ejes x,y
 def logfunc(list_x,list_y):
@@ -65,7 +66,11 @@ class Bono:
                            index=[0])
         #Traformar a Serie
         self.info=df.loc[0]
-    
+        #Periodo de vencimiento o maduracion del instrumento
+        if(self.info['Fecha_Vencimiento']==flujo['fecha'].max()):
+            pass
+        else:
+            self.info['Fecha_Vencimiento']=flujo['fecha'].max()
       
     def flujoVigente(self,fechaValor,fecha_fin=''):
         #determinar el flujo a cobrar
@@ -81,9 +86,9 @@ class Bono:
             return df
         else:
             return df[df.fecha<=fecha_fin]
-    
+        
+    #Devuelve los dias transcurridos que genera el interes a ser pagado
     def dias_transcurridos_por_intereses(self,valor_nominal,valor_interes,tasa_interes):
-        #Devuelve los dias transcurridos para generar el valor_interes ingresado
         dias_transcurridos=valor_interes/valor_nominal*(365/tasa_interes)
         
         return np.around(dias_transcurridos)
@@ -130,11 +135,37 @@ class Bono:
         else:
             return np.nan
     
+    def interesCorrido(self,fechaValor):
+        dias_corridos=self.diasCorridos(fechaValor)
+        valorNominal=self.valorNominalUnitario(fechaValor)
+        tasaCupon=self.info['TasaCupon']
+        interes_corrido=tasaCupon/365*dias_corridos*valorNominal
+        return interes_corrido
+    
+    def maduracion_dias(self,fechaValor):
+        fecha_vencimiento=self.info['Fecha_Vencimiento']
+        maduracion=int((fecha_vencimiento-fechaValor)/timedelta(days=1))
+        return maduracion
+    
+    def tasaNominal_de_tir(self,irr,periodicidad):
+        tasa_nominal=round(((1+irr)**(1/periodicidad)-1)*periodicidad,6)
+        return tasa_nominal
+    
+    def tir_de_tasaNominal(self,tasa_nominal,periodicidad):
+        irr=round((1+tasa_nominal/periodicidad)**periodicidad-1,6)
+        return irr
+    
+    def tasaNominal_directa(self,fechaValor,valorActual):
+        flujo=self.flujoVigente(fechaValor)
+        maduracion=self.maduracion_dias(fechaValor)
+        tasa_nominal_directa=(flujo['pago'].sum()/valorActual-1)*(365/maduracion)
+        return tasa_nominal_directa
+    
     def rendimiento(self,fechaValor,valorActual):
         #Definir el flujo residual
         flujo=self.flujoVigente(fechaValor)
         
-        return irr(flujo['pago'],flujo['dias'],valorActual)
+        return irr(flujo.pago,flujo.dias,valorActual)
     
     def valorActual(self,irr,fechaValor):
         flujo=self.flujoVigente(fechaValor)
@@ -155,51 +186,87 @@ class Bono:
         duration = valor_tiempo_ponderado/valor_actual
         #devolver calculo
         return duration
+    
+    def periodicidad_pago_interes(self):
+        try: 
+            plazo_anos=(self.info.Fecha_Vencimiento-self.info.Fecha_Emision).days/365
+            cantidad_cupones=self.flujo.interes.count()
+            return round(cantidad_cupones/plazo_anos)
+        except:
+            print('Error: Fecha_Emision esta vacio')
+            return np.nan
+    
+    def valorNominalUnitario(self,fechaValor=''):
+        if(fechaValor==''):
+            return self.flujo.amortizacion.sum()
+        else:
+            return self.flujoVigente(fechaValor).amortizacion.sum()
         
+    def valor_por_precioClean(self,fechaValor,precio):
+        valorNominal=self.valorNominalUnitario(fechaValor)
+        precioDirty=precio+round(self.interesCorrido(fechaValor)/valorNominal*100,4)
+        
+        valorActual=precioDirty/100.00*valorNominal
+        
+        irr=self.rendimiento(fechaValor,valorActual)
+        
+        return self.datosValor(irr, fechaValor)
+    
+    def valor_por_precioDirty(self,fechaValor,precioDirty):
+        valorNominal=self.valorNominalUnitario(fechaValor)
+        
+        valorActual=precioDirty/100.00*valorNominal
+        
+        irr=self.rendimiento(fechaValor,valorActual)
+        
+        return self.datosValor(irr, fechaValor)
+    
+        
+    def valor_por_tasaNominal(self,fechaValor,tasa_nominal,periodicidad):
+        irr=self.tir_de_tasaNominal(tasa_nominal,periodicidad)
+        return self.datosValor(irr, fechaValor)
+    
     def datosValor(self,irr,fechaValor):
         #Valoracion segun rendimiento
         valorActualNeto=self.valorActual(irr,fechaValor)
-        #flujo de pago futuro desde fechaValor
-        flujo=self.flujoVigente(fechaValor)
+
         #Valor nominal unitario
-        valorNominal=flujo['amortizacion'].sum()
+        valorNominal=self.valorNominalUnitario(fechaValor)
               
         #Tasa cupon
         tasaCupon=self.info['TasaCupon']
-        
-        #Periodo de vencimiento o maduracion del instrumento
-        fecha_vencimiento=(self.info['Fecha_Vencimiento'] if 
-                           self.info['Fecha_Vencimiento']==flujo['fecha'].max()
-                           else flujo['fecha'].max())
+        #Dias corridos desde pago ultimo cupon        
+        dias_corridos=self.diasCorridos(fechaValor)
         
         #Dias desde el ultimo pago cupon
         if(tasaCupon>0):
-            dias_corridos=self.diasCorridos(fechaValor)
-            interes_corrido=tasaCupon/365*dias_corridos*valorNominal
+            interes_corrido=self.interesCorrido(fechaValor)
         else:
             interes_corrido=0
 
-        #Maduracion y Duration del instrumento
-        maduracion=int((fecha_vencimiento-fechaValor)/timedelta(days=1))
+        #Maduracion y Duration Mcauly del instrumento
+        maduracion=self.maduracion_dias(fechaValor)
         duration=self.duration(irr,fechaValor)
         
-        #Tasa nominal
-        tasa_nominal=(flujo['pago'].sum()/valorActualNeto-1)*(365/maduracion)
+        periodicidad=self.periodicidad_pago_interes()
+        
+        #Tasa nominal en base a la TIR tomando la periodicidad de pago de interes
+        tasa_nominal_tir=self.tasaNominal_de_tir(irr,periodicidad)
         
         #Precios
-        pdirty=valorActualNeto/valorNominal*100
-        pclean=(valorActualNeto-interes_corrido)/valorNominal*100
-        pBase=(valorActualNeto/((1+irr)**(dias_corridos/365)))/valorNominal*100
+        pdirty=round(valorActualNeto/valorNominal*100,4)
+        pclean=round((valorActualNeto-interes_corrido)/valorNominal*100,4)
+        pBase=round((valorActualNeto/((1+irr)**(dias_corridos/365)))/valorNominal*100,4)
         
         #Carga de datos  
-        datos={'Rendimiento':irr,
-               'Tasa Nominal':tasa_nominal,
+        datos={'Tasa Efectiva':irr,
+               'Tasa Nominal':tasa_nominal_tir,
                'Precio Dirty':pdirty,
                'Precio Clean':pclean,
                'Precio Base':pBase,
-               'Interes Corrido':interes_corrido/valorNominal*100,
-               'Duration':duration/365,
-               'Maduracion':maduracion/365}
+               'Interes Corrido':round(interes_corrido/valorNominal*100,4),
+               'Duration':round(duration/365,2),
+               'Maduracion':round(maduracion/365,2)}
         
         #Transformar a Serie
         return pd.DataFrame(data=datos,index=[0]).loc[0]
