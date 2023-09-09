@@ -51,6 +51,8 @@ class Bono:
         self.flujo=flujo.loc[:,['fecha','interes','amortizacion']]
         #Ordenar por fecha
         self.flujo=self.flujo.sort_values(by='fecha')
+        #calcular el flujo de pago sin discriminar el proposito 
+        self.flujo.loc[:,'pago']=self.flujo.loc[:,'interes']+self.flujo.loc[:,'amortizacion']
         
         #Informacion del Bono
         df=pd.DataFrame(data={'isin':self.isin,
@@ -76,8 +78,6 @@ class Bono:
         #determinar el flujo a cobrar
         df=self.flujo[(self.flujo['fecha']>fechaValor)]
         
-        #calcular el flujo de pago sin discriminar el proposito 
-        df.loc[:,'pago']=df.loc[:,'interes']+df.loc[:,'amortizacion']
         #calcular dias a cobrar de cada flujo
         df.loc[:,'dias']=((df.loc[:,'fecha']-fechaValor)/timedelta(days=1)).astype(int)
         
@@ -259,14 +259,14 @@ class Bono:
         pBase=round((valorActualNeto/((1+irr)**(dias_corridos/365)))/valorNominal*100,4)
         
         #Carga de datos  
-        datos={'Tasa Efectiva':irr,
-               'Tasa Nominal':tasa_nominal_tir,
-               'Precio Dirty':pdirty,
-               'Precio Clean':pclean,
-               'Precio Base':pBase,
-               'Interes Corrido':round(interes_corrido/valorNominal*100,4),
-               'Duration':round(duration/365,2),
-               'Maduracion':round(maduracion/365,2)}
+        datos={'tasa_efectiva':irr,
+               'tasa_nominal':tasa_nominal_tir,
+               'precio_dirty':pdirty,
+               'precio_clean':pclean,
+               'precio_base':pBase,
+               'interes_corrido':round(interes_corrido/valorNominal*100,4),
+               'duration':round(duration/365,2),
+               'maduracion':round(maduracion/365,2)}
         
         #Transformar a Serie
         return pd.DataFrame(data=datos,index=[0]).loc[0]
@@ -304,7 +304,7 @@ class CDA(Bono):
         self.info=df.loc[0]
     
 class Mercado:
-    def __init__(self,flujos,operaciones=None,calificaciones=''):
+    def __init__(self,flujos,operaciones=None,calificaciones='',isin=''):
         
         #Cargar los instrumentos con la condicion que tenga flujo
         self.instrumentos=pd.DataFrame(index=flujos.pivot_table(index='isin').index)
@@ -317,14 +317,14 @@ class Mercado:
         if(type(operaciones)==type(pd.DataFrame())):
             self.operaciones=operaciones
             
-            self.operaciones=self.operaciones.rename(columns={'emisor/calificacion':'calificacion'})
+        #     self.operaciones=self.operaciones.rename(columns={'emisor/calificacion':'calificacion'})
             
-            #Carga de calificacion simple
-            for row in self.operaciones.itertuples():
-                calif=str(row.calificacion).replace('py','')
-                calif=calif.replace('+','')
-                calif=calif.replace('-','')
-                self.operaciones.loc[row.Index,'calif_simple']=calif
+        #     #Carga de calificacion simple
+        #     for row in self.operaciones.itertuples():
+        #         calif=str(row.calificacion).replace('py','')
+        #         calif=calif.replace('+','')
+        #         calif=calif.replace('-','')
+        #         self.operaciones.loc[row.Index,'calif_simple']=calif
             
             print('Operaciones cargadas')
         
@@ -392,45 +392,48 @@ class Mercado:
             
         return historia
     
-    def history_pClean(self,bono_isin):
+    def history_pClean(self,bono_isin,frecuencia='d'):
             #definir el bono
             bono=self.getBond(bono_isin)
             #Captar las operaciones historicas del bono
             historia_operaciones=self.operaciones[self.operaciones['isin']==bono_isin].sort_values(by=['fecha_operacion','numero_operacion'])
-            #crear listado de fechas
-            fechas_operaciones=pd.to_datetime(historia_operaciones['fecha_operacion'].values)
             
+            #Definir fechas principales
+                #Fecha de la operaciones
+            fechas_operaciones=pd.to_datetime(historia_operaciones['fecha_operacion'].values)
+                #Fecha de flujo de pagos
             fechas_flujos=pd.to_datetime(bono.flujo['fecha'].values)
 
             #Determinar fecha inicio de datos
             fecha_inicio_operaciones=fechas_operaciones.min()
+            
             #Ultima fecha de operaciones cargadas
             fecha_maxima=self.operaciones['fecha_operacion'].max()
-            #Cargar los dias segun rango de fechas de f_inicio hasta f_final
+            #Cargar los dias segun rango de fechas de fecha_inicio hasta fecha_final
             historia = pd.DataFrame({'date':pd.date_range(start=fecha_inicio_operaciones, 
                                                              end=fecha_maxima
-                                                            ,freq='d')})
+                                                            ,freq=frecuencia)})
 
             #primera operacion
             ultima_operacion=historia_operaciones[historia_operaciones['fecha_operacion']==fecha_inicio_operaciones].iloc[-1]
-
+            
             #Datos de valoracion de la primera operacion
-            datos=bono.datosValor(ultima_operacion['ytm'],fecha_inicio_operaciones)
+            datos=bono.valor_por_precioDirty(ultima_operacion.fecha_operacion,ultima_operacion.precio)
             #Carga del primer dato
-            historia.loc[0,'precio_clean']=datos['PrecioUltimoCupon']
+            historia.loc[0,'precio_clean']=datos['precio_clean']
             
             for row in historia.loc[1:].itertuples():
 
                 if(row.date in fechas_operaciones):
                     ultima_operacion=historia_operaciones[historia_operaciones['fecha_operacion']==row.date].iloc[-1]
-                    datos=bono.datosValor(ultima_operacion['ytm'],row.date)
+                    datos=bono.valor_por_precioDirty(ultima_operacion.fecha_operacion,ultima_operacion.precio)
 
                     fechas_operaciones=fechas_operaciones[~(fechas_operaciones==row.date)]
 
                 elif(row.date in fechas_flujos):
                     datos=bono.datosValor(ultima_operacion['ytm'],row.date)
 
-                historia.loc[row.Index,'precio_clean']=datos.at['PrecioUltimoCupon']
+                historia.loc[row.Index,'precio_clean']=datos.at['precio_clean']
                 
 
             return historia
