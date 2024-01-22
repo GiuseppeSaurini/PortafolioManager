@@ -10,54 +10,68 @@ Created on Tue Jan 19 12:01:35 2021
 # Cargar las librería de python
 import pandas as pd 
 #import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime#, timedelta
 from Portafolio import Portafolio
-from Mercados import Mercado
-from ImportData import importData
+from Mercados import Bono,CDA
+from MarketData import MarketDataAPI as md
+#from icecream import ic
 
 
 if __name__ == "__main__":
-   #Descarga de instumentos
-    #api_flujos=importData(table='flujos')
    
-   #Carga de instumentos
-    #mercado=Mercado(api_flujos)
-    
    #Apertura de portafolio
     cliente=Portafolio()
     
-   #Carga de operaciones ejemplo
-    #operacion(tipoOP,mercado,isin,fechaOP,precioOP,cantidad)
-    cliente.operacion('compra',Mercado(importData('PYCON01F6605',table='flujos')),'PYCON01F6605',datetime(2017,2,22),1062849,2)
+    #Lectura de datos
+        #Obtencion de los flujos de CDA
+    flujos_cda=pd.read_excel('dato_portafolio.xlsx',sheet_name='flujos')
+        #Datos de operaciones para creacion de cartera
+    cartera_pyg=pd.read_excel('dato_portafolio.xlsx',sheet_name='cartera_pyg')
     
-    #cliente.operacion('compra',mercado,'PYATM03F6452',datetime(2017,2,22),1075315,4)
-    #cliente.operacion('compra',mercado,'PYINN03F5295',datetime(2017,2,22),1036266,4)
-    #cliente.operacion('compra',mercado,'PYINN01F5271',datetime(2017,10,13),1038734,4)
-    #cliente.operacion('compra',mercado,'PYELE01F3737',datetime(2018,6,5),1046284,2)
-    cliente.operacion('compra',Mercado(importData('PYINN04F5633',table='flujos')),'PYINN04F5633',datetime(2019,2,13),1020658,2)
-    #cliente.operacion('compra',mercado,'PYATM01F8823',datetime(2019,9,26),1032673,20)
-    #cliente.operacion('compra',mercado,'PYATM02F8830',datetime(2019,12,19),1024114,9)
-
+   #Carga de operaciones
+    for row in cartera_pyg.itertuples():
+        print(row.serie)
+        if(row.instrumento=='CDA'):
+        
+            cda=CDA(flujos_cda[flujos_cda['serie']==row.serie],row.tasa_cupon,
+                   row.serie,row.emisor,row.instrumento)
+            cliente.operacion(row.tipo_operacion,
+                              cda,
+                              row.fecha_operacion,
+                              row.valor_unitario,
+                              row.cantidad)
+        else:
+            bono=Bono(row.serie,md.get_flujo(row.serie))
+            cliente.operacion(row.tipo_operacion,
+                              bono,
+                              row.fecha_operacion,
+                              row.valor_unitario,
+                              row.cantidad)
+    print('loading operation finish\n')       
+   
    #Rango de fecha    
-    fecha_inicio=datetime(2017,1,1)
-    fecha_fin=datetime(2020,12,14)
+    fecha_inicio=datetime(2023,1,1)
+    fecha_fin=datetime(2023,12,31)
     
    #Valor historico de portafolio
-    hist=cliente.historyValue(fecha_inicio,fecha_fin,frequency='M')
+    historyValue=cliente.historyValue(fecha_inicio,fecha_fin,frequency='M')
+   #Carga de flujo de efectivo
+    flujoPortafolio=cliente.flujoPortafolio(fecha_inicio,fecha_fin)
+   #Carga de detalle y valoracion del portafolio al cierre
+    carteraFinal=cliente.stockPortafolio(fecha_fin)
    
    #Generar el excel
     writer=pd.ExcelWriter('Portafolio_test.xlsx')
     
-   #Carga de Valor historico
-    hist.to_excel(writer,sheet_name='historyValue')
+    #Cargar al excel
+    historyValue.to_excel(writer,sheet_name='historyValue')
     
-   #Carga de flujo de efectivo
-    cliente.flujoPortafolio(fecha_inicio,fecha_fin).to_excel(writer,sheet_name='flujo')
+    flujoPortafolio.to_excel(writer,sheet_name='flujo')
     
-   #Carga de detalle y valoracion del portafolio
-    cliente.stockPortafolio(fecha_fin).to_excel(writer,sheet_name='Cartera')
+    carteraFinal.to_excel(writer,sheet_name='Cartera')
     
    #Cerrar
     writer.save()
+    writer.close()
    
     
