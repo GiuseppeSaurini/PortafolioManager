@@ -32,17 +32,24 @@ def npv(irr, cfs, dias,va=0):
     return np.sum(cfs/(1+ irr)**(dias/365))-va
 
 #Funcion que define la tasa en la que NPV es 0
-def irr(cashFlow,time,va):
-    tasa=fsolve(npv,0, args=(cashFlow,time,va))
+def irr(cfs, dias, va=0):
+    #cfs es el flujo a descontar
+    #dias se refiere a cantidad de dias a descontar cada flujo
+    #va se refiere al valor actual o valor de la inversion
+
+    tasa=fsolve(npv,0, args=(cfs, dias,va))
     return tasa.item()
 
 #Define la ecuacion logaritmica (valores a y b) tomando en cuenta los ejes x,y
 def logfunc(list_x,list_y):
+    # calculate the best fit line for data points in the list
+    # input: two lists (list_x and list_y) containing data points
+    # output: coefficients (a, b) of the line equation: y = a*log(x) + b
+
     return np.polyfit(np.log(list_x),list_y,1)
 
 
-class Bono:
-    
+class Bono:  
     def __init__(self,isin,flujo):
         #identificacion del bono
         self.isin=isin
@@ -52,7 +59,7 @@ class Bono:
         #Ordenar por fecha
         self.flujo=self.flujo.sort_values(by='fecha')
         #calcular el flujo de pago sin discriminar el proposito 
-        self.flujo.loc[:,'pago']=self.flujo.loc[:,'interes']+self.flujo.loc[:,'amortizacion']
+        self.flujo['pago']=self.flujo['interes']+self.flujo['amortizacion']
         
         #Informacion del Bono
         df=pd.DataFrame(data={'isin':self.isin,
@@ -79,8 +86,8 @@ class Bono:
         df=self.flujo[(self.flujo['fecha']>fechaValor)]
         
         #calcular dias a cobrar de cada flujo
-        df.loc[:,'dias']=((df.loc[:,'fecha']-fechaValor)/timedelta(days=1)).astype(int)
-        
+        df['dias']=((df['fecha']-fechaValor)/np.timedelta64(1, 'D')).astype(int)
+        df['pago']=df['interes']+df['amortizacion']
         
         if(fecha_fin==''):
             return df
@@ -282,6 +289,8 @@ class CDA(Bono):
         self.flujo=flujo.loc[:,['fecha','interes','amortizacion']]
         #Ordenar por fecha
         self.flujo=self.flujo.sort_values(by='fecha')
+        #calcular el flujo de pago sin discriminar el proposito 
+        self.flujo['pago']=self.flujo['interes']+self.flujo['amortizacion']
         
         #determinar fecha colocacion/emision
         if(fecha_colocacion==''):
