@@ -10,7 +10,6 @@ import numpy as np
 from datetime import datetime, timedelta
 from scipy.optimize import fsolve
 from Mercados import Mercado,Bono
-import icecream as ic
 
 
 #Funcion del Net Present Value a una tasa de descuento
@@ -39,20 +38,20 @@ class Portafolio:
     def operacion(self,tipo_op,instrumento,fechaOp,valorUnitario,cantidad):
         
         tirOp=instrumento.rendimiento(fechaOp,valorUnitario)
-       
         self.operaciones=self.operaciones.append({'operacion':tipo_op,
-                                                  'isin':instrumento.isin,
-                                                  'fecha':fechaOp,
-                                                  'valorUnitario':valorUnitario,
-                                                  'cantidad':cantidad,
-                                                  'TirOperacion':tirOp,
-                                                  'ValorOperacion':valorUnitario*cantidad,
-                                                  'bono':instrumento
-                                                  },ignore_index=True)
+                                                 'isin':instrumento.isin,
+                                                 'fecha':fechaOp,
+                                                 'valorUnitario':valorUnitario,
+                                                 'cantidad':cantidad,
+                                                 'TirOperacion':tirOp,
+                                                 'ValorOperacion':valorUnitario*cantidad,
+                                                 'bono':instrumento
+                                                 },ignore_index=True)
+                             
         
     def stockPortafolio(self,fechaValor):
         #Definir columnas df
-        stock=pd.DataFrame(columns=['isin','cantidad','tirOp','ValorBono'])
+        stock=pd.DataFrame(columns=['isin','cantidad','tirOp','Valor'])
         wordsCompra=['compra','Compra','COMPRA']
         wordsVenta=['venta','Venta','VENTA']
         #En base a las operaciones definir el stock disponible a la fecha requerida
