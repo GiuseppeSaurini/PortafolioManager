@@ -19,8 +19,8 @@ if __name__ == "__main__":
     
     isin_bono='PYMUV01F8148'
     #api_operaciones=importData(isin_bono,'operaciones')
-    api_flujos=md.importData(isin_bono,'flujos')
-    api_insturmento=md.importData(isin_bono)
+    api_flujos=md.get_flujos(isin_bono)
+    api_insturmento=md.get_instrumentos(isin_bono)
         
     #mercado=Mercado(api_flujos,api_operaciones)
     mercado=Mercado(api_flujos)
@@ -31,7 +31,6 @@ if __name__ == "__main__":
     
     #bono_history.plot(x='date',y='precio_clean')
     
-    valor=bono.datosValor(0.060,datetime(2021,10,29))
     
     
     
